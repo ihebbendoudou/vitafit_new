@@ -1,0 +1,100 @@
+<div class="analyse-container">
+  <!-- Message d'erreur -->
+  <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show" role="alert">
+    {{ errorMessage }}
+    <button type="button" class="btn-close" (click)="errorMessage = ''" aria-label="Close"></button>
+  </div>
+
+  <!-- Indicateur de chargement -->
+  <div *ngIf="loading" class="text-center p-4">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Chargement...</span>
+    </div>
+    <p class="mt-2">Chargement des données...</p>
+  </div>
+
+  <!-- Contenu principal -->
+  <div *ngIf="!loading && !errorMessage" class="row">
+    <!-- Contrôles -->
+    <div class="col-12 mb-4">
+      <div class="d-flex justify-content-end">
+        <button class="btn btn-outline-primary" (click)="toggleChartType()">
+          <i class="fas" [ngClass]="chartType === 'bar' ? 'fa-chart-line' : 'fa-chart-bar'"></i>
+          Changer le type de graphique
+        </button>
+      </div>
+    </div>
+
+    <!-- Graphique mensuel -->
+    <div class="col-12 col-lg-6 mb-4">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h5>Paiements par mois (12 derniers mois)</h5>
+        </div>
+        <div class="chart-body">
+          <canvas baseChart
+            [data]="chartMensuelData"
+            [options]="chartOptions"
+            [type]="chartType">
+          </canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Graphique annuel -->
+    <div class="col-12 col-lg-6 mb-4">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h5>Paiements par année (5 dernières années)</h5>
+        </div>
+        <div class="chart-body">
+          <canvas baseChart
+            [data]="chartAnnuelData"
+            [options]="chartOptions"
+            [type]="chartType">
+          </canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Statistiques supplémentaires -->
+    <div class="col-12 mt-3">
+      <div class="row stats-container">
+        <!-- Ces statistiques seront calculées dans une future mise à jour -->
+        <div class="col-md-4 mb-3">
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="stat-content">
+              <h6>Taux de paiement</h6>
+              <p class="stat-value">Bientôt disponible</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 mb-3">
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="stat-content">
+              <h6>Revenu mensuel moyen</h6>
+              <p class="stat-value">Bientôt disponible</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 mb-3">
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-percentage"></i>
+            </div>
+            <div class="stat-content">
+              <h6>Croissance annuelle</h6>
+              <p class="stat-value">Bientôt disponible</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

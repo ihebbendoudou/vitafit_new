@@ -1,0 +1,111 @@
+<header class="header">
+  <div class="container">
+    <nav class="navbar">
+      <div class="navbar-brand" (click)="navigateToHome()">
+        <h2>{{ brandName }}</h2>
+      </div>
+      
+      <div class="navbar-menu" [class.active]="isMenuOpen">
+        <ul class="navbar-nav">
+          <li>
+            <a 
+              [class.active]="isActiveRoute('/')"
+              (click)="scrollToSection('hero')"
+              style="cursor: pointer;"
+            >
+              Accueil
+            </a>
+          </li>
+          <li>
+            <a 
+              [class.active]="isActiveRoute('/recipes')"
+              (click)="navigateToRecipes()"
+              style="cursor: pointer;"
+            >
+              Recettes
+            </a>
+          </li>
+          <li>
+            <a 
+              [class.active]="currentPage === 'products'"
+              (click)="scrollToSection('products')"
+              style="cursor: pointer;"
+            >
+              Produits
+            </a>
+          </li>
+          <li>
+            <a 
+              (click)="scrollToSection('dashboards')"
+              style="cursor: pointer;"
+            >
+              Tableaux de bord
+            </a>
+          </li>
+          <li>
+            <a 
+              (click)="scrollToSection('consultation')"
+              style="cursor: pointer;"
+            >
+              Consultation
+            </a>
+          </li>
+          <li>
+            <a 
+              (click)="scrollToSection('cta')"
+              style="cursor: pointer;"
+            >
+              Contact
+            </a>
+          </li>
+        </ul>
+        
+        <div class="navbar-actions">
+          <!-- Icône du panier -->
+          <div 
+            *ngIf="showCartIcon" 
+            class="cart-icon" 
+            (click)="toggleCartModal()"
+            title="Panier"
+          >
+            <i class="fas fa-shopping-cart"></i>
+            <span class="cart-badge" *ngIf="cartItemCount > 0">{{ cartItemCount }}</span>
+          </div>
+          
+          <!-- Boutons d'authentification -->
+          <div *ngIf="showAuthButtons && !isLoggedIn" class="auth-buttons">
+            <a class="btn btn-info" (click)="navigateToLogin()">Connexion</a>
+            <a class="btn btn-primary" (click)="navigateToRegister()">S'inscrire</a>
+          </div>
+          
+          <!-- Menu utilisateur connecté -->
+          <div *ngIf="isLoggedIn" class="user-menu">
+            <div class="dropdown">
+              <button class="user-btn" type="button">
+                <i class="fas fa-user"></i>
+                <i class="fas fa-chevron-down"></i>
+              </button>
+              <div class="dropdown-menu">
+                <a class="dropdown-item" (click)="navigateToDashboard()">
+                  <i class="fas fa-tachometer-alt"></i>
+                  Tableau de bord
+                </a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" (click)="logout()">
+                  <i class="fas fa-sign-out-alt"></i>
+                  Déconnexion
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="navbar-toggle" [class.active]="isMenuOpen" (click)="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </nav>
+  </div>
+</header>

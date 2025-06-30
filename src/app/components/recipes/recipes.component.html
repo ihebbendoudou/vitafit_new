@@ -1,0 +1,113 @@
+<div class="recipes-container">
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <nav class="navbar">
+        <div class="navbar-brand">
+          <h2>VitaFit</h2>
+        </div>
+        <div class="navbar-menu" [class.active]="isMenuOpen">
+          <ul class="navbar-nav">
+            <li><a href="/" (click)="navigateToHome()">Accueil</a></li>
+            <li><a href="#" class="active">Recettes</a></li>
+            <li><a href="/login">Connexion</a></li>
+          </ul>
+          <div class="navbar-actions">
+            <a href="/login" class="btn btn-info">Connexion</a>
+            <a href="/register" class="btn btn-primary">S'inscrire</a>
+          </div>
+        </div>
+        <div class="navbar-toggle" [class.active]="isMenuOpen" (click)="toggleMenu()">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Header Section -->
+  <div class="recipes-header">
+    <div class="container">
+      <h1 class="page-title">Toutes nos Recettes</h1>
+      <p class="page-subtitle">Découvrez notre collection complète de recettes saines et délicieuses</p>
+      
+      <!-- Search Bar -->
+      <div class="search-container">
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input 
+            type="text" 
+            placeholder="Rechercher une recette..."
+            [(ngModel)]="searchTerm"
+            (input)="searchRecipes()"
+            class="search-input"
+          >
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recipes Grid Section -->
+  <div class="recipes-content">
+    <div class="container">
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Chargement des recettes...</p>
+      </div>
+
+      <!-- Recipes Grid -->
+      <div *ngIf="!isLoading" class="recipes-grid">
+        <div class="recipe-card" *ngFor="let recipe of filteredRecipes" (click)="viewRecipe(recipe)">
+          <div class="recipe-image-container">
+            <img
+              *ngIf="recipe.main_image; else noImage"
+              [src]="getImageUrl(recipe.main_image)"
+              [alt]="recipe.title"
+              class="recipe-image"
+              (error)="onImageError($event)"
+            />
+            <ng-template #noImage>
+              <div class="recipe-placeholder">
+                <i class="fas fa-utensils"></i>
+              </div>
+            </ng-template>
+            <div class="recipe-overlay">
+              <span class="calories-badge">{{ recipe.calories }} cal</span>
+            </div>
+          </div>
+          <div class="recipe-content">
+            <h3 class="recipe-title">{{ recipe.title }}</h3>
+            <p class="recipe-description">{{ recipe.description }}</p>
+            <div class="recipe-meta">
+              <span class="recipe-date">
+                <i class="fas fa-calendar"></i>
+                {{ recipe.created_at | date:'dd/MM/yyyy' }}
+              </span>
+              <span class="view-recipe">
+                <i class="fas fa-arrow-right"></i>
+                Voir la recette
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="!isLoading && filteredRecipes.length === 0" class="empty-state">
+        <i class="fas fa-search"></i>
+        <h3>Aucune recette trouvée</h3>
+        <p>Essayez de modifier vos critères de recherche ou explorez toutes nos recettes</p>
+        <button class="btn btn-primary" (click)="searchTerm = ''; searchRecipes()">
+          Voir toutes les recettes
+        </button>
+      </div>
+
+      <!-- Results Count -->
+      <div *ngIf="!isLoading && filteredRecipes.length > 0" class="results-count">
+        <p>{{ filteredRecipes.length }} recette(s) trouvée(s)</p>
+      </div>
+    </div>
+  </div>
+</div>

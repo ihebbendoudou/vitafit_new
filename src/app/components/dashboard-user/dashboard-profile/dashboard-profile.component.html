@@ -1,0 +1,59 @@
+<div class="profile-container">
+  <div class="profile-header">
+    <div class="profile-avatar">
+      <i class="fas fa-user-circle"></i>
+    </div>
+    <div class="profile-info">
+      <h2>Bienvenue, {{ userName || 'Utilisateur' }}!</h2>
+      <p class="profile-subtitle">Gérez votre profil et vos informations personnelles</p>
+    </div>
+  </div>
+
+  <div class="profile-content">
+    <div class="info-card">
+      <div class="card-header">
+        <h3>
+          <i class="fas fa-user"></i>
+          Informations personnelles
+        </h3>
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <label>Nom d'utilisateur:</label>
+          <span>{{ userName || 'Non défini' }}</span>
+        </div>
+        <div class="info-row">
+          <label>Email:</label>
+          <span>{{ userEmail || 'Non défini' }}</span>
+        </div>
+        <div class="info-row">
+          <label>ID Utilisateur:</label>
+          <span>{{ userId || 'Non défini' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions-card">
+      <div class="card-header">
+        <h3>
+          <i class="fas fa-cog"></i>
+          Actions rapides
+        </h3>
+      </div>
+      <div class="card-body">
+        <button class="action-btn">
+          <i class="fas fa-edit"></i>
+          Modifier le profil
+        </button>
+        <button class="action-btn">
+          <i class="fas fa-key"></i>
+          Changer le mot de passe
+        </button>
+        <button class="action-btn">
+          <i class="fas fa-bell"></i>
+          Préférences de notification
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

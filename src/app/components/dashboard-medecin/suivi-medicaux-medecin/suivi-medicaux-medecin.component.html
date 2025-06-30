@@ -1,0 +1,338 @@
+<div class="suivi-medicaux-container">
+  <div class="header">
+    <h2>
+      <i class="fas fa-heartbeat"></i>
+      <span *ngIf="userRole === 'medecin'">Suivis Médicaux</span>
+      <span *ngIf="userRole === 'coach'">Suivis Médicaux - Vue Coach</span>
+      <span *ngIf="userRole === 'admin'">Suivis Médicaux - Vue Administrateur</span>
+      <span *ngIf="!userRole || (userRole !== 'medecin' && userRole !== 'coach' && userRole !== 'admin')">Suivis Médicaux</span>
+    </h2>
+    <button (click)="refreshData()" class="btn-refresh" [disabled]="loading">
+      <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i>
+      Actualiser
+    </button>
+  </div>
+
+  <div class="main-content">
+    <!-- Sidebar avec liste des patients -->
+    <div class="patients-sidebar">
+      <div class="sidebar-header">
+        <h3 *ngIf="userRole === 'medecin'">Mes Patients</h3>
+        <h3 *ngIf="userRole === 'coach'">Patients Suivis</h3>
+        <h3 *ngIf="userRole === 'admin'">Tous les Patients</h3>
+        <h3 *ngIf="!userRole || (userRole !== 'medecin' && userRole !== 'coach' && userRole !== 'admin')">Patients</h3>
+        <div class="search-container">
+          <div class="search-input-wrapper">
+            <i class="fas fa-search search-icon"></i>
+            <input 
+              type="text" 
+              class="search-input" 
+              placeholder="Rechercher un patient..."
+              [(ngModel)]="searchTerm"
+              (input)="filterPatients()"
+            >
+            <button 
+              *ngIf="searchTerm" 
+              class="clear-search-btn" 
+              (click)="searchTerm = ''; filterPatients()"
+            >
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading patients -->
+      <div *ngIf="loadingPatients" class="loading-state">
+        <div class="spinner"></div>
+        <p>Chargement des patients...</p>
+      </div>
+
+      <!-- Error loading patients -->
+      <div *ngIf="error && !loadingPatients" class="error-state">
+        <i class="fas fa-exclamation-triangle"></i>
+        <p>{{ error }}</p>
+        <button (click)="loadPatients()" class="btn-retry">
+          <i class="fas fa-redo"></i>
+          Réessayer
+        </button>
+      </div>
+
+      <!-- Patients list -->
+      <div *ngIf="!loadingPatients && !error" class="patients-list">
+        <div *ngIf="filteredPatients.length === 0" class="no-patients">
+          <i class="fas fa-user-friends"></i>
+          <p *ngIf="!searchTerm">Aucun patient trouvé</p>
+          <p *ngIf="searchTerm">Aucun patient ne correspond à votre recherche</p>
+        </div>
+
+        <div 
+          *ngFor="let patient of filteredPatients" 
+          class="patient-item"
+          [class.selected]="selectedPatient?.user_id === patient.user_id"
+          (click)="selectPatient(patient)"
+        >
+          <div class="patient-avatar">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="patient-info">
+            <h4>{{ patient.user_prenom }} {{ patient.user_nom }}</h4>
+            <p class="patient-email">{{ patient.user_email }}</p>
+            <p class="patient-date">Suivi depuis {{ formatDate(patient.date_suivi) }}</p>
+          </div>
+          <div class="patient-status">
+            <span class="status-badge active">Actif</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main content area -->
+    <div class="content-area">
+      <!-- No patient selected -->
+      <div *ngIf="!selectedPatient" class="no-selection">
+        <i class="fas fa-user-md"></i>
+        <h3>Sélectionnez un patient</h3>
+        <p>Choisissez un patient dans la liste pour voir son dossier médical complet et ses statistiques de suivi.</p>
+      </div>
+
+      <!-- Patient selected -->
+      <div *ngIf="selectedPatient" class="patient-details">
+        <!-- Patient header -->
+        <div class="patient-header">
+          <div class="patient-info-header">
+            <div class="patient-avatar-large">
+              <i class="fas fa-user"></i>
+            </div>
+            <div class="patient-details-header">
+              <h2>{{ selectedPatient.user_prenom }} {{ selectedPatient.user_nom }}</h2>
+              <p class="patient-email">{{ selectedPatient.user_email }}</p>
+              <p class="patient-contact">
+                <i class="fas fa-phone"></i> {{ selectedPatient.user_tel }}
+                <i class="fas fa-map-marker-alt"></i> {{ selectedPatient.user_adresse }}
+              </p>
+            </div>
+          </div>
+          <button class="btn-close" (click)="clearSelection()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <!-- Statistics Section -->
+        <div *ngIf="statistics" class="statistics-section">
+          <h3><i class="fas fa-chart-line"></i> Statistiques de Suivi</h3>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="fas fa-calendar-check"></i>
+              </div>
+              <div class="stat-content">
+                <h4>{{ statistics.totalSuivis }}</h4>
+                <p>Suivis enregistrés</p>
+              </div>
+            </div>
+            
+            <div class="stat-card" *ngIf="statistics.moyennePoids > 0">
+              <div class="stat-icon">
+                <i class="fas fa-weight"></i>
+              </div>
+              <div class="stat-content">
+                <h4>{{ statistics.moyennePoids | number:'1.1-1' }} kg</h4>
+                <p>Poids moyen</p>
+                <div class="trend" [style.color]="getTendanceColor(statistics.tendancePoids)">
+                  <i [class]="getTendanceIcon(statistics.tendancePoids)"></i>
+                  {{ statistics.tendancePoids }}
+                </div>
+              </div>
+            </div>
+            
+            <div class="stat-card" *ngIf="statistics.moyenneIMC > 0">
+              <div class="stat-icon">
+                <i class="fas fa-calculator"></i>
+              </div>
+              <div class="stat-content">
+                <h4>{{ statistics.moyenneIMC | number:'1.1-1' }}</h4>
+                <p>IMC moyen</p>
+                <div class="trend" [style.color]="getTendanceColor(statistics.tendanceIMC)">
+                  <i [class]="getTendanceIcon(statistics.tendanceIMC)"></i>
+                  {{ statistics.tendanceIMC }}
+                </div>
+              </div>
+            </div>
+            
+            <div class="stat-card" *ngIf="statistics.dernierSuivi">
+              <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+              </div>
+              <div class="stat-content">
+                <h4>{{ formatDate(statistics.dernierSuivi.date_suivi) }}</h4>
+                <p>Dernier suivi</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Health Data Section -->
+        <div class="health-data-section">
+          <h3><i class="fas fa-file-medical"></i> Dossier Médical Initial</h3>
+          
+          <!-- Loading health data -->
+          <div *ngIf="loadingHealthData" class="loading-state">
+            <div class="spinner"></div>
+            <p>Chargement des données de santé...</p>
+          </div>
+
+          <!-- Error loading health data -->
+          <div *ngIf="healthDataError && !loadingHealthData" class="error-state">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>{{ healthDataError }}</p>
+          </div>
+
+          <!-- Health data content -->
+          <div *ngIf="healthData && !loadingHealthData && !healthDataError" class="health-data-content">
+            <div class="health-sections">
+              <!-- Informations générales -->
+              <div class="health-section">
+                <h4><i class="fas fa-info-circle"></i> Informations générales</h4>
+                <div class="health-grid">
+                  <div class="health-item">
+                    <label>IMC initial</label>
+                    <span>{{ healthData.imc }}</span>
+                  </div>
+                  <div class="health-item">
+                    <label>Date d'enregistrement</label>
+                    <span>{{ formatDate(healthData.date_enregistrement) }}</span>
+                  </div>
+                  <div class="health-item">
+                    <label>Date de diagnostic</label>
+                    <span>{{ formatDate(healthData.date_diagnostic) }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Mesures corporelles initiales -->
+              <div class="health-section">
+                <h4><i class="fas fa-ruler"></i> Mesures corporelles initiales</h4>
+                <div class="health-grid">
+                  <div class="health-item">
+                    <label>Tour de taille</label>
+                    <span>{{ healthData.tour_taille }} cm</span>
+                  </div>
+                  <div class="health-item">
+                    <label>Tour de hanches</label>
+                    <span>{{ healthData.tour_hanches }} cm</span>
+                  </div>
+                  <div class="health-item">
+                    <label>Tour de bras</label>
+                    <span>{{ healthData.tour_bras }} cm</span>
+                  </div>
+                  <div class="health-item">
+                    <label>Tour de cuisses</label>
+                    <span>{{ healthData.tour_cuisses }} cm</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pathologies -->
+              <div class="health-section" *ngIf="healthData.pathologies">
+                <h4><i class="fas fa-notes-medical"></i> Pathologies</h4>
+                <div class="health-content">
+                  <p>{{ healthData.pathologies }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Suivi History Section -->
+        <div class="suivi-history-section">
+          <h3><i class="fas fa-history"></i> Historique des Suivis</h3>
+          
+          <!-- Loading suivi history -->
+          <div *ngIf="loadingSuiviHistory" class="loading-state">
+            <div class="spinner"></div>
+            <p>Chargement de l'historique...</p>
+          </div>
+
+          <!-- Error loading suivi history -->
+          <div *ngIf="suiviHistoryError && !loadingSuiviHistory" class="error-state">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>{{ suiviHistoryError }}</p>
+          </div>
+
+          <!-- No suivi history -->
+          <div *ngIf="suiviHistory.length === 0 && !loadingSuiviHistory && !suiviHistoryError" class="no-data">
+            <i class="fas fa-calendar-times"></i>
+            <p>Aucun suivi enregistré pour ce patient</p>
+          </div>
+
+          <!-- Suivi history content -->
+          <div *ngIf="suiviHistory.length > 0 && !loadingSuiviHistory && !suiviHistoryError" class="suivi-history-content">
+            <div class="suivi-timeline">
+              <div *ngFor="let suivi of suiviHistory; let i = index" class="suivi-item">
+                <div class="suivi-date">
+                  <div class="date-circle">
+                    <i class="fas fa-calendar-day"></i>
+                  </div>
+                  <span>{{ formatDate(suivi.date_suivi) }}</span>
+                </div>
+                
+                <div class="suivi-content">
+                  <div class="suivi-measurements">
+                    <div class="measurement-grid">
+                      <div class="measurement-item" *ngIf="suivi.poids">
+                        <label>Poids</label>
+                        <span>{{ suivi.poids }} kg</span>
+                      </div>
+                      <div class="measurement-item" *ngIf="suivi.imc">
+                        <label>IMC</label>
+                        <span>{{ suivi.imc }}</span>
+                      </div>
+                      <div class="measurement-item" *ngIf="suivi.tour_taille">
+                        <label>Tour de taille</label>
+                        <span>{{ suivi.tour_taille }} cm</span>
+                      </div>
+                      <div class="measurement-item" *ngIf="suivi.tour_hanches">
+                        <label>Tour de hanches</label>
+                        <span>{{ suivi.tour_hanches }} cm</span>
+                      </div>
+                      <div class="measurement-item" *ngIf="suivi.tour_bras">
+                        <label>Tour de bras</label>
+                        <span>{{ suivi.tour_bras }} cm</span>
+                      </div>
+                      <div class="measurement-item" *ngIf="suivi.tour_cuisses">
+                        <label>Tour de cuisses</label>
+                        <span>{{ suivi.tour_cuisses }} cm</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="suivi-details" *ngIf="suivi.niveau_energie || suivi.adherence_programme">
+                    <div class="detail-item" *ngIf="suivi.niveau_energie">
+                      <label>Niveau d'énergie</label>
+                      <span class="badge">{{ suivi.niveau_energie }}</span>
+                    </div>
+                    <div class="detail-item" *ngIf="suivi.adherence_programme">
+                      <label>Adhérence au programme</label>
+                      <span class="badge">{{ suivi.adherence_programme }}</span>
+                    </div>
+                  </div>
+                  
+                  <div class="suivi-observations" *ngIf="suivi.observations">
+                    <label>Observations</label>
+                    <p>{{ suivi.observations }}</p>
+                  </div>
+                  
+                  <div class="suivi-photo" *ngIf="suivi.photo_url">
+                    <label>Photo de suivi</label>
+                    <img [src]="suivi.photo_url" alt="Photo de suivi" class="suivi-image">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

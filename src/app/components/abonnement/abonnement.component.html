@@ -1,0 +1,524 @@
+<div class="abonnement-container">
+  <div class="header">
+    <h2>Gestion des Abonnements</h2>
+    <button class="btn btn-primary" (click)="openAddForm()" *ngIf="!showForm">
+      <i class="fas fa-plus"></i> Ajouter un abonnement
+    </button>
+  </div>
+
+  <!-- Messages d'alerte -->
+  <div class="alert alert-success" *ngIf="successMessage">
+    {{ successMessage }}
+  </div>
+  <div class="alert alert-danger" *ngIf="errorMessage">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Formulaire d'ajout/modification -->
+  <div class="form-container" *ngIf="showForm">
+    <h3>{{ isEditing ? 'Modifier' : 'Ajouter' }} un abonnement</h3>
+    <form [formGroup]="abonnementForm" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label for="user_search">Utilisateur</label>
+        <div class="autocomplete-container">
+          <input 
+            type="text" 
+            id="user_search" 
+            [(ngModel)]="searchTerm" 
+            (input)="filterUsers()" 
+            (blur)="onSearchBlur()" 
+            class="form-control" 
+            placeholder="Rechercher un utilisateur..."
+            [ngModelOptions]="{standalone: true}"
+          >
+          <div class="suggestions-container" *ngIf="showUserSuggestions && filteredUsers.length > 0">
+            <div 
+              *ngFor="let user of filteredUsers" 
+              class="suggestion-item" 
+              (click)="selectUser(user)"
+            >
+              {{ user.nom }} {{ user.prenom }}
+            </div>
+          </div>
+        </div>
+        <div class="error-message" *ngIf="abonnementForm.get('user_id')?.invalid && abonnementForm.get('user_id')?.touched">
+          Veuillez sélectionner un utilisateur
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="type_id">Type d'abonnement</label>
+        <select id="type_id" formControlName="type_id" class="form-control">
+          <option value="">Sélectionner un type d'abonnement</option>
+          <option *ngFor="let type of typeAbonnements" [value]="type.id">{{ type.nom }} - {{ type.prix }}€ ({{ type.duree_jours }} jours)</option>
+        </select>
+        <div class="error-message" *ngIf="abonnementForm.get('type_id')?.invalid && abonnementForm.get('type_id')?.touched">
+          Veuillez sélectionner un type d'abonnement
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="date_debut">Date de début</label>
+        <input type="date" id="date_debut" formControlName="date_debut" class="form-control">
+        <div class="error-message" *ngIf="abonnementForm.get('date_debut')?.invalid && abonnementForm.get('date_debut')?.touched">
+          Veuillez sélectionner une date de début
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="date_fin">Date de fin</label>
+        <input type="date" id="date_fin" formControlName="date_fin" class="form-control">
+        <div class="error-message" *ngIf="abonnementForm.get('date_fin')?.invalid && abonnementForm.get('date_fin')?.touched">
+          Veuillez sélectionner une date de fin
+        </div>
+      </div>
+
+      <div class="form-group" *ngIf="showCoachSelector">
+        <label for="coach_id">Coach <span class="required-star" *ngIf="isTypeWithCoach">*</span></label>
+        <select id="coach_id" formControlName="coach_id" class="form-control">
+          <option [ngValue]="null">Sélectionner un coach</option>
+          <option *ngFor="let coach of coaches" [value]="coach.id">{{ coach.nom }} {{ coach.prenom }}</option>
+        </select>
+        <div class="error-message" *ngIf="isTypeWithCoach && abonnementForm.get('coach_id')?.invalid && abonnementForm.get('coach_id')?.touched">
+          Veuillez sélectionner un coach pour ce type d'abonnement
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-success" [disabled]="abonnementForm.invalid || loading">
+          <i class="fas fa-save"></i> {{ isEditing ? 'Mettre à jour' : 'Enregistrer' }}
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="cancelForm()">
+          <i class="fas fa-times"></i> Annuler
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Liste des abonnements -->
+  <div class="abonnements-list">
+    <!-- Champ de recherche avec autocomplétion -->
+    <div class="search-container">
+      <div class="autocomplete-container">
+        <input 
+          type="text" 
+          class="search-input" 
+          placeholder="Rechercher un abonnement..." 
+          [(ngModel)]="tableSearchTerm" 
+          (input)="filterAbonnements(); showTableSuggestions = true"
+          (blur)="onTableSearchBlur()"
+        >
+        <div class="suggestions-container" *ngIf="showTableSuggestions && tableSuggestions.length > 0">
+          <div 
+            *ngFor="let suggestion of tableSuggestions" 
+            class="suggestion-item" 
+            (click)="selectTableSuggestion(suggestion)"
+          >
+            {{ suggestion }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="loading-spinner" *ngIf="loading">
+      <i class="fas fa-spinner fa-spin"></i> Chargement...
+    </div>
+
+    <table class="table" *ngIf="!loading && filteredAbonnements.length > 0">
+      <thead>
+        <tr>
+          <th class="sortable-header" (click)="sortData('id')">
+            ID <span *ngIf="sortIcon['id']">{{ sortIcon['id'] }}</span>
+          </th>
+          <th class="sortable-header" (click)="sortData('user_name')">
+            Utilisateur <span *ngIf="sortIcon['user_name']">{{ sortIcon['user_name'] }}</span>
+          </th>
+          <th class="sortable-header" (click)="sortData('type_name')">
+            Type d'abonnement <span *ngIf="sortIcon['type_name']">{{ sortIcon['type_name'] }}</span>
+          </th>
+          <th class="sortable-header" (click)="sortData('date_debut')">
+            Date début <span *ngIf="sortIcon['date_debut']">{{ sortIcon['date_debut'] }}</span>
+          </th>
+          <th class="sortable-header" (click)="sortData('date_fin')">
+            Date fin <span *ngIf="sortIcon['date_fin']">{{ sortIcon['date_fin'] }}</span>
+          </th>
+          <th class="sortable-header" (click)="sortData('prix')">
+            Prix <span *ngIf="sortIcon['prix']">{{ sortIcon['prix'] }}</span>
+          </th>
+          <th class="sortable-header" (click)="sortData('coach_name')">
+            Coach <span *ngIf="sortIcon['coach_name']">{{ sortIcon['coach_name'] }}</span>
+          </th>
+         
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let abonnement of filteredAbonnements">
+          <td>{{ abonnement.id }}</td>
+          <td>
+            <span *ngIf="abonnement.utilisateur">{{ abonnement.utilisateur.prenom }} {{ abonnement.utilisateur.nom }} </span>
+            <span *ngIf="!abonnement.utilisateur">{{ getUserName(abonnement.user_id) }}</span>
+          </td>
+          <td>
+            <span *ngIf="abonnement.type_abonnement">{{ abonnement.type_abonnement.nom }}</span>
+            <span *ngIf="!abonnement.type_abonnement">{{ getTypeAbonnementName(abonnement.type_id) }}</span>
+          </td>
+          <td>{{ abonnement.date_debut }}</td>
+          <td>{{ abonnement.date_fin }}</td>
+          <td>
+            <span *ngIf="abonnement.type_abonnement">{{ abonnement.type_abonnement.prix }}</span>
+            <span *ngIf="!abonnement.type_abonnement">{{ getTypeAbonnementName(abonnement.type_id) }}</span>
+          </td>
+          <td>
+            <span *ngIf="abonnement.coach">{{ abonnement.coach.nom }}</span>
+            <span *ngIf="!abonnement.coach">{{ getCoachName(abonnement.coach_id) }}</span>
+          </td>
+       
+          <td>
+            <button class="btn btn-sm btn-info" (click)="openEditForm(abonnement)">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn btn-sm btn-danger" (click)="deleteAbonnement(abonnement.id!)">
+              <i class="fas fa-trash"></i>
+            </button>
+            <button
+  class="btn btn-sm btn-success"
+  *ngIf="abonnement.utilisateur"
+  (click)="showHealthDetails(abonnement.utilisateur.id)">
+  Voir santé
+</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="no-data" *ngIf="!loading && filteredAbonnements.length === 0">
+      <p>Aucun abonnement trouvé</p>
+    </div>
+  </div>
+  
+  <!-- Popup pour les données de santé -->
+  <div class="health-popup-overlay" *ngIf="showHealthPopup" (click)="closeHealthPopup()">
+    <div class="health-popup" (click)="$event.stopPropagation()">
+      <div class="health-popup-header">
+        <h3>Données de Santé</h3>
+        <div class="health-popup-actions">
+          <button *ngIf="!editingHealth && currentHealthData" type="button" class="btn btn-sm btn-primary" (click)="editHealthData()">Modifier</button>
+          <button *ngIf="!editingHealth && !currentHealthData" type="button" class="btn btn-sm btn-success" (click)="createNewHealthData()">Créer</button>
+          <button *ngIf="!editingHealth && currentHealthData" type="button" class="btn btn-sm btn-danger" (click)="confirmDeleteHealthData()">Supprimer</button>
+          <button type="button" class="close-btn" (click)="closeHealthPopup()">&times;</button>
+        </div>
+      </div>
+      <div class="health-popup-content">
+        <div *ngIf="loadingHealthData" class="loading">Chargement des données de santé...</div>
+        <div *ngIf="!loadingHealthData && !currentHealthData && !editingHealth" class="no-results">
+          Aucune donnée de santé trouvée pour cet adhérent
+          <div class="mt-3">
+            <button type="button" class="btn btn-success" (click)="createNewHealthData()">Ajouter des données de santé</button>
+          </div>
+        </div>
+        
+        <!-- Formulaire d'édition des données de santé -->
+        <form *ngIf="editingHealth" [formGroup]="healthForm" (ngSubmit)="saveHealthData()" class="health-form">
+          <div class="health-section">
+            <h4>Mesures Corporelles</h4>
+            <div class="health-grid">
+              <div class="health-form-item">
+                <label for="imc">IMC</label>
+                <input type="number" id="imc" formControlName="imc" step="0.01">
+              </div>
+              <div class="health-form-item">
+                <label for="tour_taille">Tour de taille (cm)</label>
+                <input type="number" id="tour_taille" formControlName="tour_taille" step="0.1">
+              </div>
+              <div class="health-form-item">
+                <label for="tour_hanches">Tour de hanches (cm)</label>
+                <input type="number" id="tour_hanches" formControlName="tour_hanches" step="0.1">
+              </div>
+              <div class="health-form-item">
+                <label for="tour_bras">Tour de bras (cm)</label>
+                <input type="number" id="tour_bras" formControlName="tour_bras" step="0.1">
+              </div>
+              <div class="health-form-item">
+                <label for="tour_cuisses">Tour de cuisses (cm)</label>
+                <input type="number" id="tour_cuisses" formControlName="tour_cuisses" step="0.1">
+              </div>
+              <div class="health-form-item">
+                <label for="graisse_corporelle">Graisse corporelle (%)</label>
+                <input type="number" id="graisse_corporelle" formControlName="graisse_corporelle" step="0.1">
+              </div>
+              <div class="health-form-item">
+                <label for="masse_musculaire">Masse musculaire (%)</label>
+                <input type="number" id="masse_musculaire" formControlName="masse_musculaire" step="0.1">
+              </div>
+              <div class="health-form-item">
+                <label for="hydratation">Hydratation (%)</label>
+                <input type="number" id="hydratation" formControlName="hydratation" step="0.1">
+              </div>
+            </div>
+          </div>
+          
+          <div class="health-section">
+            <h4>Paramètres Vitaux</h4>
+            <div class="health-grid">
+              <div class="health-form-item">
+                <label for="tension_arterielle">Tension artérielle</label>
+                <input type="text" id="tension_arterielle" formControlName="tension_arterielle">
+              </div>
+              <div class="health-form-item">
+                <label for="frequence_cardiaque">Fréquence cardiaque (bpm)</label>
+                <input type="number" id="frequence_cardiaque" formControlName="frequence_cardiaque">
+              </div>
+              <div class="health-form-item">
+                <label for="glycemie">Glycémie (g/L)</label>
+                <input type="number" id="glycemie" formControlName="glycemie" step="0.01">
+              </div>
+              <div class="health-form-item">
+                <label for="ferritine">Ferritine (µg/L)</label>
+                <input type="number" id="ferritine" formControlName="ferritine">
+              </div>
+              <div class="health-form-item">
+                <label for="cholesterol">Cholestérol (g/L)</label>
+                <input type="number" id="cholesterol" formControlName="cholesterol" step="0.01">
+              </div>
+            </div>
+          </div>
+          
+          <div class="health-section">
+            <h4>Activité Physique</h4>
+            <div class="health-grid">
+              <div class="health-form-item">
+                <label for="activite_physique">Niveau d'activité</label>
+                <select id="activite_physique" formControlName="activite_physique">
+                  <option value="Sédentaire">Sédentaire</option>
+                  <option value="Légère">Légère</option>
+                  <option value="Modérée">Modérée</option>
+                  <option value="Intense">Intense</option>
+                  <option value="Très intense">Très intense</option>
+                </select>
+              </div>
+              <div class="health-form-item">
+                <label for="activite_physique_type">Type d'activité</label>
+                <input type="text" id="activite_physique_type" formControlName="activite_physique_type">
+              </div>
+              <div class="health-form-item">
+                <label for="frequence_activite">Fréquence</label>
+                <select id="frequence_activite" formControlName="frequence_activite">
+                  <option value="Jamais">Jamais</option>
+                  <option value="Occasionnellement">Occasionnellement</option>
+                  <option value="1-2 fois/semaine">1-2 fois/semaine</option>
+                  <option value="3-5 fois/semaine">3-5 fois/semaine</option>
+                  <option value="Quotidiennement">Quotidiennement</option>
+                </select>
+              </div>
+              <div class="health-form-item">
+                <label for="duree_activite_minutes">Durée (min)</label>
+                <input type="number" id="duree_activite_minutes" formControlName="duree_activite_minutes">
+              </div>
+            </div>
+          </div>
+          
+          <div class="health-section">
+            <h4>Habitudes de Vie</h4>
+            <div class="health-grid">
+              <div class="health-form-item">
+                <label for="sommeil_heures">Sommeil (heures)</label>
+                <input type="number" id="sommeil_heures" formControlName="sommeil_heures" step="0.5">
+              </div>
+              <div class="health-form-item">
+                <label for="qualite_sommeil">Qualité du sommeil</label>
+                <select id="qualite_sommeil" formControlName="qualite_sommeil">
+                  <option value="Très mauvaise">Très mauvaise</option>
+                  <option value="Mauvaise">Mauvaise</option>
+                  <option value="Moyenne">Moyenne</option>
+                  <option value="Bonne">Bonne</option>
+                  <option value="Très bonne">Très bonne</option>
+                </select>
+              </div>
+              <div class="health-form-item">
+                <label for="stress">Niveau de stress</label>
+                <select id="stress" formControlName="stress">
+                  <option value="Très bas">Très bas</option>
+                  <option value="Bas">Bas</option>
+                  <option value="Moyen">Moyen</option>
+                  <option value="Élevé">Élevé</option>
+                  <option value="Très élevé">Très élevé</option>
+                </select>
+              </div>
+              <div class="health-form-item">
+                <label for="hydratation_litres">Hydratation quotidienne (L)</label>
+                <input type="number" id="hydratation_litres" formControlName="hydratation_litres" step="0.1">
+              </div>
+              <div class="health-form-item">
+                <label for="journal_alimentaire">Alimentation</label>
+                <textarea id="journal_alimentaire" formControlName="journal_alimentaire" rows="2"></textarea>
+              </div>
+              <div class="health-form-item">
+                <label for="score_conformite_alimentaire">Score alimentaire (/100)</label>
+                <input type="number" id="score_conformite_alimentaire" formControlName="score_conformite_alimentaire" min="0" max="100">
+              </div>
+            </div>
+          </div>
+          
+          <div class="health-section">
+            <h4>Informations Médicales</h4>
+            <div class="health-grid">
+              <div class="health-form-item full-width">
+                <label for="pathologies">Pathologies</label>
+                <textarea id="pathologies" formControlName="pathologies" rows="2"></textarea>
+              </div>
+              <div class="health-form-item">
+                <label for="date_diagnostic">Date du diagnostic</label>
+                <input type="date" id="date_diagnostic" formControlName="date_diagnostic">
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" [disabled]="savingHealth">
+              Enregistrer
+              <span *ngIf="savingHealth" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="cancelHealthEdit()">Annuler</button>
+          </div>
+        </form>
+        
+        <!-- Affichage des données de santé -->
+        <div *ngIf="!loadingHealthData && currentHealthData && !editingHealth" class="health-data">
+          <div class="health-section">
+            <h4>Mesures Corporelles</h4>
+            <div class="health-grid">
+              <div class="health-item">
+                <span class="health-label">IMC</span>
+                <span class="health-value">{{ displayValue(currentHealthData.imc) }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Tour de taille</span>
+                <span class="health-value">{{ displayValue(currentHealthData.tour_taille, ' cm') }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Tour de hanches</span>
+                <span class="health-value">{{ displayValue(currentHealthData.tour_hanches, ' cm') }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Tour de bras</span>
+                <span class="health-value">{{ displayValue(currentHealthData.tour_bras, ' cm') }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Tour de cuisses</span>
+                <span class="health-value">{{ displayValue(currentHealthData.tour_cuisses, ' cm') }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Graisse corporelle</span>
+                <span class="health-value">{{ displayValue(currentHealthData.graisse_corporelle, '%') }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Masse musculaire</span>
+                <span class="health-value">{{ displayValue(currentHealthData.masse_musculaire, '%') }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Hydratation</span>
+                <span class="health-value">{{ displayValue(currentHealthData.hydratation, '%') }}</span>
+              </div>
+            </div>
+          
+          <div class="health-section">
+            <h4>Paramètres Vitaux</h4>
+            <div class="health-grid">
+              <div class="health-item">
+                <span class="health-label">Tension artérielle</span>
+                <span class="health-value">{{ displayValue(currentHealthData.tension_arterielle) }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Fréquence cardiaque</span>
+                <span class="health-value">{{ displayValue(currentHealthData.frequence_cardiaque, ' bpm') }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Glycémie</span>
+                <span class="health-value">{{ displayValue(currentHealthData.glycemie, ' g/L') }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Ferritine</span>
+                <span class="health-value">{{ displayValue(currentHealthData.ferritine, ' µg/L') }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Cholestérol</span>
+                <span class="health-value">{{ displayValue(currentHealthData.cholesterol, ' g/L') }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="health-section">
+            <h4>Activité Physique</h4>
+            <div class="health-grid">
+              <div class="health-item">
+                <span class="health-label">Niveau d'activité</span>
+                <span class="health-value">{{ displayValue(currentHealthData.activite_physique) }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Type d'activité</span>
+                <span class="health-value">{{ displayValue(currentHealthData.activite_physique_type) }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Fréquence</span>
+                <span class="health-value">{{ displayValue(currentHealthData.frequence_activite) }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Durée</span>
+                <span class="health-value">{{ displayValue(currentHealthData.duree_activite_minutes, ' min') }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="health-section">
+            <h4>Habitudes de Vie</h4>
+            <div class="health-grid">
+              <div class="health-item">
+                <span class="health-label">Sommeil</span>
+                <span class="health-value">{{ displayValue(currentHealthData.sommeil_heures, ' heures') }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Qualité du sommeil</span>
+                <span class="health-value">{{ displayValue(currentHealthData.qualite_sommeil) }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Niveau de stress</span>
+                <span class="health-value">{{ displayValue(currentHealthData.stress) }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Hydratation quotidienne</span>
+                <span class="health-value">{{ displayValue(currentHealthData.hydratation_litres, ' L') }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Alimentation</span>
+                <span class="health-value">{{ displayValue(currentHealthData.journal_alimentaire) }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Score alimentaire</span>
+                <span class="health-value">{{ displayValue(currentHealthData.score_conformite_alimentaire, '/100') }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="health-section">
+            <h4>Informations Médicales</h4>
+            <div class="health-grid">
+              <div class="health-item full-width">
+                <span class="health-label">Pathologies</span>
+                <span class="health-value">{{ displayValue(currentHealthData.pathologies, '', 'Aucune') }}</span>
+              </div>
+              <div class="health-item full-width" *ngIf="hasValue(currentHealthData.date_diagnostic)">
+                <span class="health-label">Date du diagnostic</span>
+                <span class="health-value">{{ currentHealthData.date_diagnostic | date:'dd/MM/yyyy' }}</span>
+              </div>
+              <div class="health-item full-width" *ngIf="hasValue(currentHealthData.date_enregistrement)">
+                <span class="health-label">Date d'enregistrement</span>
+                <span class="health-value">{{ currentHealthData.date_enregistrement | date:'dd/MM/yyyy' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

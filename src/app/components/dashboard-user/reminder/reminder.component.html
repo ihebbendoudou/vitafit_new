@@ -1,0 +1,221 @@
+<div class="reminder-container">
+  <!-- Header -->
+  <div class="header">
+    <h2>
+      <i class="fas fa-bell"></i>
+      Rappels d'Entraînement
+    </h2>
+    <p class="subtitle">Configurez vos rappels pour ne jamais manquer une séance d'entraînement</p>
+    
+    <!-- Section Notifications Push -->
+    <div class="notification-status" *ngIf="notificationSupported">
+      <div class="notification-info">
+        <span class="notification-icon">🔔</span>
+        <div class="notification-text">
+          <strong>Notifications Push:</strong>
+          <span [ngClass]="{
+            'status-granted': notificationPermission === 'granted',
+            'status-denied': notificationPermission === 'denied',
+            'status-default': notificationPermission === 'default'
+          }">
+            {{ notificationPermission === 'granted' ? 'Activées' : 
+               notificationPermission === 'denied' ? 'Refusées' : 'Non configurées' }}
+          </span>
+        </div>
+      </div>
+      <div class="notification-buttons">
+         <button 
+           *ngIf="notificationPermission !== 'granted'"
+           (click)="requestNotificationPermission()"
+           class="btn-notification">
+           Activer les notifications
+         </button>
+         <button 
+           *ngIf="notificationPermission === 'granted'"
+           (click)="testNotification()"
+           class="btn-notification btn-test">
+           Tester les notifications
+         </button>
+       </div>
+    </div>
+    
+    <div class="notification-warning" *ngIf="!notificationSupported">
+      ⚠️ Votre navigateur ne supporte pas les notifications push
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div class="messages" *ngIf="error || success">
+    <div class="alert alert-error" *ngIf="error">
+      <i class="fas fa-exclamation-circle"></i>
+      {{ error }}
+    </div>
+    <div class="alert alert-success" *ngIf="success">
+      <i class="fas fa-check-circle"></i>
+      {{ success }}
+    </div>
+  </div>
+
+  <!-- Formulaire de création -->
+  <div class="add-reminder-card">
+    <h3>
+      <i class="fas fa-plus-circle"></i>
+      Ajouter un nouveau rappel
+    </h3>
+    
+    <form (ngSubmit)="createReminder()" class="reminder-form">
+      <div class="form-row">
+        <div class="input-group">
+          <label for="title">Titre du rappel</label>
+          <input 
+            type="text" 
+            id="title"
+            [(ngModel)]="newReminder.title" 
+            name="title"
+            class="form-input"
+            placeholder="Ex: Séance de musculation"
+            required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="input-group">
+          <label for="day">Jour de la semaine</label>
+          <select 
+            id="day"
+            [(ngModel)]="newReminder.day_of_week" 
+            name="day"
+            class="form-select">
+            <option *ngFor="let day of daysOfWeek" [value]="day.value">
+              {{ day.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label for="time">Heure</label>
+          <input 
+            type="time" 
+            id="time"
+            [(ngModel)]="newReminder.time" 
+            name="time"
+            class="form-input">
+        </div>
+
+        <div class="input-group checkbox-group">
+          <label class="checkbox-label">
+            <input 
+              type="checkbox" 
+              [(ngModel)]="newReminder.notify" 
+              name="notify"
+              class="checkbox-input">
+            <span class="checkbox-custom"></span>
+            Activer les notifications
+          </label>
+        </div>
+      </div>
+
+      <button 
+        type="submit" 
+        class="add-btn" 
+        [disabled]="loading">
+        <i class="fas fa-plus" *ngIf="!loading"></i>
+        <i class="fas fa-spinner fa-spin" *ngIf="loading"></i>
+        {{ loading ? 'Création...' : 'Ajouter le rappel' }}
+      </button>
+    </form>
+  </div>
+
+  <!-- Liste des rappels -->
+  <div class="reminders-section">
+    <h3 class="section-title">
+      <i class="fas fa-list"></i>
+      Mes rappels ({{ reminders.length }})
+    </h3>
+
+    <!-- État de chargement -->
+    <div *ngIf="loading && reminders.length === 0" class="loading-state">
+      <div class="spinner"></div>
+      <p>Chargement des rappels...</p>
+    </div>
+
+    <!-- Aucun rappel -->
+    <div *ngIf="!loading && reminders.length === 0" class="no-reminders">
+      <i class="fas fa-bell-slash"></i>
+      <h4>Aucun rappel configuré</h4>
+      <p>Créez votre premier rappel pour ne jamais manquer vos séances d'entraînement.</p>
+    </div>
+
+    <!-- Liste des rappels -->
+    <div *ngIf="reminders.length > 0" class="reminders-grid">
+      <div *ngFor="let reminder of reminders" class="reminder-card">
+        <div class="reminder-header">
+          <div class="reminder-day">
+            <span class="day-badge">{{ getDayLabel(reminder.day_of_week) }}</span>
+          </div>
+          <div class="reminder-actions">
+            <button 
+              class="toggle-btn" 
+              [class.active]="reminder.notify"
+              (click)="reminder.notify = !reminder.notify; updateReminderStatus(reminder)"
+              title="{{ reminder.notify ? 'Désactiver' : 'Activer' }} les notifications">
+              <i class="fas" [class.fa-bell]="reminder.notify" [class.fa-bell-slash]="!reminder.notify"></i>
+            </button>
+            <button 
+              class="delete-btn" 
+              (click)="deleteReminder(reminder.id!)"
+              title="Supprimer ce rappel">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="reminder-body">
+          <h4 class="reminder-title">{{ reminder.title }}</h4>
+          
+          <div class="reminder-details">
+            <div class="detail-item">
+              <i class="fas fa-clock"></i>
+              <span>{{ formatTime(reminder.time) }}</span>
+            </div>
+            
+            <div class="detail-item">
+              <i class="fas fa-calendar"></i>
+              <span>Prochaine occurrence: {{ getNextOccurrence(reminder.day_of_week, reminder.time) }}</span>
+            </div>
+            
+            <div class="detail-item">
+              <i class="fas fa-info-circle"></i>
+              <span>Notification 30 minutes avant</span>
+            </div>
+          </div>
+
+          <div class="reminder-status">
+            <span class="status-badge" [class.active]="reminder.notify" [class.inactive]="!reminder.notify">
+              <i class="fas" [class.fa-bell]="reminder.notify" [class.fa-bell-slash]="!reminder.notify"></i>
+              {{ reminder.notify ? 'Notifications activées' : 'Notifications désactivées' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Informations supplémentaires -->
+  <div class="info-section">
+    <div class="info-card">
+      <div class="info-header">
+        <i class="fas fa-lightbulb"></i>
+        <h4>Comment ça fonctionne ?</h4>
+      </div>
+      <div class="info-content">
+        <ul>
+          <li><strong>Rappels personnalisés :</strong> Configurez vos jours et heures d'entraînement préférés</li>
+          <li><strong>Notifications automatiques :</strong> Recevez une notification 30 minutes avant votre séance</li>
+          <li><strong>Gestion flexible :</strong> Activez/désactivez ou supprimez vos rappels à tout moment</li>
+          <li><strong>Planification hebdomadaire :</strong> Créez plusieurs rappels pour différents jours</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

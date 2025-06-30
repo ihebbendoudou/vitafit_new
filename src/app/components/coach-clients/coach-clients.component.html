@@ -1,0 +1,180 @@
+<div class="coach-clients-container">
+  <div class="header">
+    <h2>Mes Adhérents</h2>
+    <div class="search-box">
+      <input type="text" [(ngModel)]="searchQuery" placeholder="Rechercher un adhérent..." (input)="searchClients()">
+      <i class="fas fa-search"></i>
+    </div>
+  </div>
+
+  <div class="alert alert-error" *ngIf="errorMessage">
+    {{ errorMessage }}
+    <button class="close-btn" (click)="errorMessage = ''">&times;</button>
+  </div>
+
+  <div class="loading-spinner" *ngIf="loading">
+    <div class="spinner"></div>
+    <p>Chargement des adhérents...</p>
+  </div>
+
+  <div class="table-container" *ngIf="!loading">
+    <table class="data-table" *ngIf="filteredClients.length > 0; else noClients">
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Prénom</th>
+          <th>Email</th>
+          <th>Téléphone</th>
+          <th>Programme</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let client of filteredClients">
+          <td>{{ client.user_nom }}</td>
+          <td>{{ client.user_prenom }}</td>
+          <td>{{ client.user_email }}</td>
+          <td>{{ client.user_telephone }}</td>
+          <td class="programme-status">
+            <span *ngIf="client.hasProgramme" class="badge badge-success" (click)="viewClientProgrammes(client.user_id)" style="cursor: pointer;">
+              {{ client.programmeCount }} programme(s)
+            </span>
+            <span *ngIf="!client.hasProgramme" class="badge badge-warning">
+              Aucun programme
+            </span>
+          </td>
+          <td class="actions-cell">
+            <button class="btn-view" title="Voir l'historique de poids" (click)="viewClientWeightHistory(client.user_id)">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button class="btn-program" title="Créer un programme">
+              <i class="fas fa-clipboard-list"></i>
+            </button>
+            <button class="btn-session" title="Planifier une séance">
+              <i class="fas fa-calendar-plus"></i>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <ng-template #noClients>
+      <div class="no-data-message" *ngIf="!loading">
+        <i class="fas fa-users-slash"></i>
+        <p>Aucun adhérent trouvé</p>
+        <p *ngIf="searchQuery" class="sub-message">Essayez de modifier votre recherche</p>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- Section d'affichage des programmes d'un client -->
+  <div class="client-programmes-section" *ngIf="selectedClientProgrammes && selectedClientProgrammes.length > 0">
+    <div class="programmes-header">
+      <h3>Programmes de {{ selectedClientName }}</h3>
+      <button class="btn-close" (click)="closeClientProgrammes()">&times;</button>
+    </div>
+    
+    <div class="programmes-grid">
+      <div class="programme-card" *ngFor="let programme of selectedClientProgrammes">
+        <div class="programme-header">
+          <h4>{{ programme.nom }}</h4>
+          <span class="programme-date">{{ programme.created_at | date:'dd/MM/yyyy' }}</span>
+        </div>
+        <p class="programme-description">{{ programme.description || 'Aucune description' }}</p>
+        
+        <div class="programme-stats" *ngIf="programme.jours && programme.jours.length > 0">
+          <div class="stat-item">
+            <i class="fas fa-calendar-day"></i>
+            <span>{{ programme.jours.length }} jour(s)</span>
+          </div>
+          <div class="stat-item">
+            <i class="fas fa-dumbbell"></i>
+            <span>{{ getTotalExercices(programme) }} exercice(s)</span>
+          </div>
+        </div>
+        
+        <div class="programme-actions">
+          <button class="btn-view-details" (click)="viewProgrammeDetails(programme)">
+            <i class="fas fa-eye"></i> Voir détails
+          </button>
+          <button class="btn-download-pdf" (click)="downloadProgrammePDF(programme)">
+            <i class="fas fa-file-pdf"></i> Télécharger PDF
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Détails d'un programme spécifique -->
+  <div class="programme-details-modal" *ngIf="selectedProgrammeDetails">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>{{ selectedProgrammeDetails.nom }}</h3>
+        <button class="btn-close" (click)="closeProgrammeDetails()">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <p class="programme-description">{{ selectedProgrammeDetails.description || 'Aucune description' }}</p>
+        
+        <div class="jours-container" *ngIf="selectedProgrammeDetails.jours && selectedProgrammeDetails.jours.length > 0">
+          <div class="jour-card" *ngFor="let jour of selectedProgrammeDetails.jours">
+            <div class="jour-header">
+              <h4>{{ jour.jour }}</h4>
+              <span *ngIf="jour.titre" class="jour-titre">{{ jour.titre }}</span>
+            </div>
+            
+            <p class="jour-notes" *ngIf="jour.notes">{{ jour.notes }}</p>
+            
+            <div class="exercices-list" *ngIf="jour.exercices && jour.exercices.length > 0">
+              <div class="exercice-item" *ngFor="let exercice of jour.exercices">
+                <div class="exercice-header">
+                  <h5>{{ exercice.nom }}</h5>
+                  <span class="exercice-muscle" *ngIf="exercice.muscle_cible">{{ exercice.muscle_cible }}</span>
+                </div>
+                
+                <p class="exercice-description" *ngIf="exercice.description">{{ exercice.description }}</p>
+                
+                <div class="exercice-details">
+                  <span class="detail-item"><strong>Sets:</strong> {{ exercice.sets }}</span>
+                  <span class="detail-item"><strong>Répétitions:</strong> {{ exercice.repetitions }}</span>
+                  <span class="detail-item" *ngIf="exercice.poids"><strong>Poids:</strong> {{ exercice.poids }}kg</span>
+                  <span class="detail-item"><strong>Repos:</strong> {{ exercice.temps_repos }}s</span>
+                </div>
+                
+                <div class="exercice-media" *ngIf="exercice.medias && exercice.medias.length > 0">
+                  <div class="media-item" *ngFor="let media of exercice.medias">
+                    <img *ngIf="media.type === 'image'" [src]="media.url" [alt]="exercice.nom" class="media-image">
+                    <div *ngIf="media.type === 'youtube'" class="youtube-container">
+                      <iframe [src]="getYouTubeEmbedUrl(media.url)" frameborder="0" allowfullscreen></iframe>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-backdrop" (click)="closeProgrammeDetails()"></div>
+  </div>
+
+  <!-- Modal pour l'historique de poids -->
+  <div class="weight-history-modal" *ngIf="showWeightHistoryModal">
+    <div class="modal-content weight-history-modal-content">
+      <div class="modal-header">
+        <h3>
+          <i class="fas fa-chart-line"></i>
+          Historique de Poids - {{ selectedClientForWeightHistory }}
+        </h3>
+        <button class="btn-close" (click)="closeWeightHistoryModal()">&times;</button>
+      </div>
+      
+      <div class="modal-body weight-history-modal-body">
+        <app-shared-weight-history 
+          *ngIf="selectedClientId" 
+          [userId]="selectedClientId.toString()">
+        </app-shared-weight-history>
+      </div>
+    </div>
+    <div class="modal-backdrop" (click)="closeWeightHistoryModal()"></div>
+  </div>
+</div>

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="avatarGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="50" fill="url(#avatarGradient1)"/>
+  
+  <!-- Face -->
+  <circle cx="50" cy="40" r="15" fill="#fff" opacity="0.9"/>
+  
+  <!-- Body -->
+  <path d="M20,85 Q20,65 35,65 L65,65 Q80,65 80,85 L80,100 L20,100 Z" fill="#fff" opacity="0.9"/>
+  
+  <!-- Eyes -->
+  <circle cx="45" cy="37" r="2" fill="#4a5568"/>
+  <circle cx="55" cy="37" r="2" fill="#4a5568"/>
+  
+  <!-- Smile -->
+  <path d="M42,45 Q50,50 58,45" stroke="#4a5568" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>

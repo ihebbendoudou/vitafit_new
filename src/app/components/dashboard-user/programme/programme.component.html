@@ -1,0 +1,225 @@
+<div class="programme-container">
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Chargement des programmes...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-state">
+    <i class="fas fa-exclamation-triangle"></i>
+    <h3>Erreur</h3>
+    <p>{{ error }}</p>
+    <button (click)="loadProgrammes()" class="btn-retry">
+      <i class="fas fa-redo"></i>
+      Réessayer
+    </button>
+  </div>
+
+  <!-- Programme List -->
+  <div *ngIf="!loading && !error && !selectedProgramme" class="programmes-list">
+    <div class="header">
+      <h2>
+        <i class="fas fa-dumbbell"></i>
+        Mes Programmes d'Entraînement
+      </h2>
+      <p class="subtitle">Programmes créés par votre coach</p>
+    </div>
+
+    <!-- No Programmes -->
+    <div *ngIf="programmes.length === 0" class="no-programmes">
+      <i class="fas fa-clipboard-list"></i>
+      <h3>Aucun programme disponible</h3>
+      <p>Votre coach n'a pas encore créé de programme d'entraînement pour vous.</p>
+    </div>
+
+    <!-- Programmes Grid -->
+    <div *ngIf="programmes.length > 0" class="programmes-grid">
+      <div *ngFor="let programme of programmes" class="programme-card" (click)="selectProgramme(programme)">
+        <div class="card-header">
+          <h3>{{ programme.nom }}</h3>
+          <span class="date">{{ formatDate(programme.created_at) }}</span>
+        </div>
+        
+        <div class="card-body">
+          <p class="description">{{ programme.description || 'Aucune description disponible' }}</p>
+          
+          <div class="programme-stats">
+            <div class="stat">
+              <i class="fas fa-calendar-day"></i>
+              <span>{{ programme.jours?.length || 0 }} jour(s)</span>
+            </div>
+            <div class="stat">
+              <i class="fas fa-user-tie"></i>
+              <span>Coach: {{ programme.coach_nom }} {{ programme.coach_prenom }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card-footer">
+          <button class="btn-view">
+            <i class="fas fa-eye"></i>
+            Voir le programme
+          </button>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Programme Details -->
+  <div *ngIf="selectedProgramme && !loading" class="programme-details">
+    <div class="details-header">
+      <div class="header-actions">
+        <button (click)="backToList()" class="btn-back">
+          <i class="fas fa-arrow-left"></i>
+          Retour à la liste
+        </button>
+        <button (click)="downloadPDF(selectedProgramme)" class="btn-download-detail">
+          <i class="fas fa-download"></i>
+          Télécharger PDF
+        </button>
+      </div>
+      
+      <div class="programme-info">
+        <h2>{{ selectedProgramme.nom }}</h2>
+        <p class="description">{{ selectedProgramme.description }}</p>
+        
+        <div class="meta-info">
+          <span>
+            <i class="fas fa-calendar-plus"></i>
+            Créé le {{ formatDate(selectedProgramme.created_at) }}
+          </span>
+          <span>
+            <i class="fas fa-user-tie"></i>
+            Par {{ selectedProgramme.coach_nom }} {{ selectedProgramme.coach_prenom }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Programme Content -->
+    <div class="programme-content">
+      <div *ngIf="!selectedProgramme.jours || selectedProgramme.jours.length === 0" class="no-content">
+        <i class="fas fa-calendar-times"></i>
+        <h3>Aucun jour programmé</h3>
+        <p>Ce programme ne contient pas encore de jours d'entraînement.</p>
+      </div>
+
+      <!-- Jours d'entraînement -->
+      <div *ngIf="selectedProgramme.jours && selectedProgramme.jours.length > 0" class="jours-container">
+        <h3 class="section-title">
+          <i class="fas fa-calendar-week"></i>
+          Planning d'entraînement ({{ selectedProgramme.jours.length }} jour(s))
+        </h3>
+        
+        <div *ngFor="let jour of selectedProgramme.jours; let i = index" class="jour-card">
+          <div class="jour-header">
+            <div class="jour-number">
+              <span class="day-badge">{{ jour.jour || (i + 1) }}</span>
+            </div>
+            <div class="jour-info">
+              <h3>
+                <i class="fas fa-calendar-day"></i>
+                {{ jour.titre || 'Jour ' + (jour.jour || (i + 1)) }}
+              </h3>
+              <div class="jour-stats">
+                <span class="stat-item">
+                  <i class="fas fa-dumbbell"></i>
+                  {{ jour.exercices?.length || 0 }} exercice(s)
+                </span>
+                <span class="stat-item" *ngIf="getTotalSets(jour) > 0">
+                  <i class="fas fa-repeat"></i>
+                  {{ getTotalSets(jour) }} série(s) total
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notes du jour -->
+          <div *ngIf="jour.notes" class="notes">
+            <h4>
+              <i class="fas fa-sticky-note"></i>
+              Notes
+            </h4>
+            <p>{{ jour.notes }}</p>
+          </div>
+
+          <!-- Exercices -->
+          <div class="exercices-section">
+            <h4>
+              <i class="fas fa-dumbbell"></i>
+              Exercices ({{ jour.exercices?.length || 0 }})
+            </h4>
+            
+            <div *ngIf="!jour.exercices || jour.exercices.length === 0" class="no-exercices">
+              <p>Aucun exercice programmé pour ce jour.</p>
+            </div>
+
+            <div *ngIf="jour.exercices && jour.exercices.length > 0" class="exercices-list">
+              <div *ngFor="let exercice of jour.exercices" class="exercice-card">
+                <div class="exercice-header">
+                  <h5>{{ exercice.nom }}</h5>
+                  <span class="muscle" *ngIf="exercice.muscle_cible">
+                    <i class="fas fa-muscle"></i>
+                    {{ exercice.muscle_cible }}
+                  </span>
+                </div>
+                
+                <div class="exercice-info">
+                  <span *ngIf="exercice.sets">
+                    <i class="fas fa-repeat"></i>
+                    {{ exercice.sets }} séries
+                  </span>
+                  <span *ngIf="exercice.repetitions">
+                    <i class="fas fa-redo"></i>
+                    {{ exercice.repetitions }} reps
+                  </span>
+                  <span *ngIf="exercice.poids">
+                    <i class="fas fa-weight-hanging"></i>
+                    {{ exercice.poids }} kg
+                  </span>
+                  <span *ngIf="exercice.temps_repos">
+                    <i class="fas fa-pause"></i>
+                    {{ exercice.temps_repos }}s repos
+                  </span>
+                </div>
+
+                <!-- Description -->
+                <div *ngIf="exercice.description" class="instructions">
+                  <h6>
+                    <i class="fas fa-info-circle"></i>
+                    Description
+                  </h6>
+                  <p>{{ exercice.description }}</p>
+                </div>
+
+                <!-- Médias associés -->
+                <div *ngIf="exercice.medias && exercice.medias.length > 0" class="media-section">
+                  <h6>
+                    <i class="fas fa-photo-video"></i>
+                    Médias
+                  </h6>
+                  <div class="media-grid">
+                    <div *ngFor="let media of exercice.medias" class="media-item">
+                      <img *ngIf="media.type === 'image'" 
+                           [src]="media.url" 
+                           [alt]="'Media ' + media.id"
+                           class="media-image">
+                      <video *ngIf="media.type === 'video'" 
+                             [src]="media.url"
+                             class="media-video"
+                             controls>
+                      </video>
+                      <p class="media-name">{{ media.type | titlecase }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

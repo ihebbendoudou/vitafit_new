@@ -1,0 +1,161 @@
+<div class="consultation-rejected-admin-container">
+  <!-- En-tête avec statistiques -->
+  <div class="header">
+    <h2><i class="fas fa-times-circle"></i> Consultations Refusées par l'Admin</h2>
+    <div class="header-stats">
+      <div class="stat-card rejected">
+        <span class="stat-number">{{ consultations.length }}</span>
+        <span class="stat-label">Total Refusées</span>
+      </div>
+      <div class="stat-card filtered" *ngIf="searchTerm || typeFilter">
+        <span class="stat-number">{{ filteredConsultations.length }}</span>
+        <span class="stat-label">Résultats Filtrés</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section des filtres -->
+  <div class="filters-section">
+    <div class="filters">
+      <div class="filter-group">
+        <label for="search">Rechercher</label>
+        <input 
+          type="text" 
+          id="search"
+          class="form-control" 
+          placeholder="Nom, email, objet, médecin..."
+          [(ngModel)]="searchTerm"
+          (input)="applyFilters()"
+        >
+      </div>
+      
+      <div class="filter-group">
+        <label for="typeFilter">Type de Patient</label>
+        <select 
+          id="typeFilter"
+          class="form-control" 
+          [(ngModel)]="typeFilter"
+          (change)="applyFilters()"
+        >
+          <option value="">Tous les types</option>
+          <option value="adherent">Adhérent</option>
+          <option value="internaute">Internaute</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label>&nbsp;</label>
+        <button 
+          type="button" 
+          class="btn btn-secondary"
+          (click)="clearFilters()"
+          [disabled]="!searchTerm && !typeFilter"
+        >
+          <i class="fas fa-eraser"></i> Effacer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading">
+    <i class="fas fa-spinner fa-spin fa-2x"></i>
+    <p>Chargement des consultations refusées...</p>
+  </div>
+
+  <!-- Tableau des consultations -->
+  <div *ngIf="!loading" class="table-container">
+    <table class="table" *ngIf="getPaginatedConsultations().length > 0; else noConsultations">
+      <thead>
+        <tr>
+          <th>ID Patient</th>
+          <th>Nom</th>
+          <th>Email</th>
+          <th>Type</th>
+          <th>Objet</th>
+          <th>Médecin</th>
+          <th>Date Demande</th>
+          <th>Commentaire Admin</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr 
+          *ngFor="let consultation of getPaginatedConsultations()" 
+          class="consultation-row rejected"
+        >
+          <td>
+            <span class="patient-id">{{ getPatientId(consultation) }}</span>
+          </td>
+          <td class="patient-info">
+            <div class="patient-name">{{ getPatientName(consultation) }}</div>
+          </td>
+          <td>
+            <span class="patient-email">{{ getPatientEmail(consultation) }}</span>
+          </td>
+          <td>
+            <span class="type-badge" [ngClass]="consultation.type">
+              {{ consultation.type === 'adherent' ? 'Adhérent' : 'Internaute' }}
+            </span>
+          </td>
+          <td>
+            <span class="consultation-objet" [title]="consultation.objet">
+              {{ consultation.objet || 'Non spécifié' }}
+            </span>
+          </td>
+          <td>
+            <div class="medecin-info">
+              <span class="medecin-name">{{ getMedecinInfo(consultation) }}</span>
+            </div>
+          </td>
+          <td>
+            <div class="date-info">
+              <span class="date-formatted">{{ getFormattedRequestDate(consultation) }}</span>
+            </div>
+          </td>
+          <td>
+            <span 
+              class="comment admin-comment rejected-reason" 
+              [title]="consultation.commentaire_admin"
+            >
+              {{ consultation.commentaire_admin || 'Aucun commentaire' }}
+            </span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Message si aucune consultation -->
+    <ng-template #noConsultations>
+      <div class="no-consultations">
+        <i class="fas fa-inbox fa-3x mb-3"></i>
+        <h4>Aucune consultation refusée par l'admin</h4>
+        <p *ngIf="searchTerm || typeFilter">Essayez de modifier vos critères de recherche.</p>
+        <p *ngIf="!searchTerm && !typeFilter">Toutes les consultations ont été approuvées ou sont en attente.</p>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- Pagination -->
+  <div *ngIf="!loading && filteredConsultations.length > itemsPerPage" class="pagination">
+    <button 
+      class="btn btn-secondary" 
+      (click)="previousPage()" 
+      [disabled]="currentPage === 1"
+    >
+      <i class="fas fa-chevron-left"></i> Précédent
+    </button>
+    
+    <span class="page-info">
+      Page {{ currentPage }} sur {{ getTotalPages() }} 
+      ({{ filteredConsultations.length }} consultation{{ filteredConsultations.length > 1 ? 's' : '' }})
+    </span>
+    
+    <button 
+      class="btn btn-secondary" 
+      (click)="nextPage()" 
+      [disabled]="currentPage === getTotalPages()"
+    >
+      Suivant <i class="fas fa-chevron-right"></i>
+    </button>
+  </div>
+</div>

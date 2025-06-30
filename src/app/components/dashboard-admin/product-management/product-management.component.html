@@ -1,0 +1,296 @@
+<div class="product-management-container">
+  <!-- En-tête -->
+  <div class="header">
+    <div class="header-title">
+      <i class="fas fa-boxes"></i>
+      <h2>Gestion des Produits & Catégories</h2>
+    </div>
+    
+    <!-- Sélecteur de vue -->
+    <div class="view-selector">
+      <button 
+        class="btn" 
+        [ngClass]="{'btn-primary': currentView === 'products', 'btn-secondary': currentView !== 'products'}"
+        (click)="switchView('products')">
+        <i class="fas fa-box"></i>
+        Produits
+      </button>
+      <button 
+        class="btn" 
+        [ngClass]="{'btn-primary': currentView === 'categories', 'btn-secondary': currentView !== 'categories'}"
+        (click)="switchView('categories')">
+        <i class="fas fa-tags"></i>
+        Catégories
+      </button>
+    </div>
+  </div>
+
+  <!-- Vue Produits -->
+  <div *ngIf="currentView === 'products'" class="products-section">
+    <!-- Filtres et actions -->
+    <div class="filters-section">
+      <div class="filters">
+        <div class="filter-group">
+          <label>Rechercher</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            placeholder="Nom ou description..." 
+            [(ngModel)]="searchTerm"
+            (input)="onSearch()">
+        </div>
+        
+        <div class="filter-group">
+          <label>Catégorie</label>
+          <select 
+            class="form-control" 
+            [(ngModel)]="selectedCategoryFilter"
+            (change)="onCategoryFilterChange()">
+            <option value="">Toutes les catégories</option>
+            <option *ngFor="let category of categories" [value]="category.id">{{category.nom}}</option>
+          </select>
+        </div>
+        
+        <div class="filter-actions">
+          <button class="btn btn-secondary" (click)="clearFilters()">
+            <i class="fas fa-times"></i>
+            Effacer
+          </button>
+          <button class="btn btn-primary" (click)="openProductForm()">
+            <i class="fas fa-plus"></i>
+            Nouveau Produit
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="stats-section">
+      <div class="stat-card">
+        <div class="stat-number">{{produits.length}}</div>
+        <div class="stat-label">Total Produits</div>
+      </div>
+      <div class="stat-card filtered">
+        <div class="stat-number">{{filteredProduits.length}}</div>
+        <div class="stat-label">Produits Filtrés</div>
+      </div>
+      <div class="stat-card categories">
+        <div class="stat-number">{{categories.length}}</div>
+        <div class="stat-label">Catégories</div>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="loading">
+      <div class="loading-spinner">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Chargement des produits...</p>
+      </div>
+    </div>
+
+    <!-- Liste des produits -->
+    <div *ngIf="!loading" class="products-table-container">
+      <div class="table-header">
+        <h3>Liste des Produits</h3>
+        <div class="pagination-info">
+          {{(currentPage - 1) * itemsPerPage + 1}} - {{Math.min(currentPage * itemsPerPage, filteredProduits.length)}} sur {{filteredProduits.length}}
+        </div>
+      </div>
+      
+      <div class="table-wrapper">
+        <table class="products-table" *ngIf="paginatedProduits.length > 0">
+          <thead>
+            <tr>
+              <th>Image</th>
+              <th>Nom</th>
+              <th>Description</th>
+              <th>Prix</th>
+              <th>Quantité</th>
+              <th>Catégorie</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let produit of paginatedProduits" class="product-row">
+              <td class="image-cell">
+                <div class="product-images">
+                  <img 
+                    *ngIf="produit.images && produit.images.length > 0" 
+                    [src]="getImageUrl(produit.images[0])" 
+                    [alt]="produit.nom"
+                    class="product-image">
+                  <div *ngIf="!produit.images || produit.images.length === 0" class="no-image">
+                    <i class="fas fa-image"></i>
+                  </div>
+                </div>
+              </td>
+              <td class="name-cell">
+                <div class="product-name">{{produit.nom}}</div>
+              </td>
+              <td class="description-cell">
+                <div class="product-description">{{produit.description}}</div>
+              </td>
+              <td class="price-cell">
+                <div class="product-price">{{produit.prix}} dt</div>
+              </td>
+              <td class="quantity-cell">
+                <div class="product-quantity">
+                  <span class="quantity-badge" [ngClass]="{'low-stock': produit.quantite < 10}">
+                    {{produit.quantite}}
+                  </span>
+                </div>
+              </td>
+              <td class="category-cell">
+                <div class="category-badge">{{getCategoryName(produit.categorie_id)}}</div>
+              </td>
+              <td class="actions-cell">
+                <div class="action-buttons">
+                  <button class="btn btn-sm btn-secondary" (click)="openProductForm(produit)" title="Modifier">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn btn-sm btn-danger" (click)="deleteProduct(produit.id)" title="Supprimer">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <div *ngIf="paginatedProduits.length === 0" class="no-products">
+          <i class="fas fa-box-open fa-3x"></i>
+          <h4>Aucun produit trouvé</h4>
+          <p>Aucun produit ne correspond aux critères de recherche.</p>
+        </div>
+      </div>
+      
+      <!-- Pagination -->
+      <div *ngIf="totalPages > 1" class="pagination">
+        <button class="btn btn-secondary" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <span class="page-info">Page {{currentPage}} sur {{totalPages}}</span>
+        <button class="btn btn-secondary" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vue Catégories -->
+  <div *ngIf="currentView === 'categories'" class="categories-section">
+    <!-- Actions -->
+    <div class="categories-header">
+      <h3>Gestion des Catégories</h3>
+      <button class="btn btn-primary" (click)="openCategoryForm()">
+        <i class="fas fa-plus"></i>
+        Nouvelle Catégorie
+      </button>
+    </div>
+
+    <!-- Liste des catégories -->
+    <div class="categories-grid">
+      <div *ngFor="let category of categories" class="category-card">
+        <div class="category-info">
+          <h4>{{category.nom}}</h4>
+          <p>ID: {{category.id}}</p>
+        </div>
+        <div class="category-actions">
+          <button class="btn btn-sm btn-secondary" (click)="openCategoryForm(category)" title="Modifier">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="btn btn-sm btn-danger" (click)="deleteCategory(category.id)" title="Supprimer">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+      
+      <div *ngIf="categories.length === 0" class="no-categories">
+        <i class="fas fa-tags fa-3x"></i>
+        <h4>Aucune catégorie</h4>
+        <p>Commencez par créer une catégorie.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formulaire Produit -->
+  <div *ngIf="showProductForm" class="modal-overlay" (click)="closeAllForms()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{editingProduct ? 'Modifier' : 'Nouveau'}} Produit</h3>
+        <button class="btn-close" (click)="closeAllForms()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <form class="product-form" (ngSubmit)="saveProduct()">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nom *</label>
+            <input type="text" class="form-control" [(ngModel)]="productForm.nom" name="nom" required>
+          </div>
+          
+          <div class="form-group">
+            <label>Catégorie *</label>
+            <select class="form-control" [(ngModel)]="productForm.categorie_id" name="categorie_id" required>
+              <option value="0">Sélectionner une catégorie</option>
+              <option *ngFor="let category of categories" [value]="category.id">{{category.nom}}</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>Description *</label>
+          <textarea class="form-control" [(ngModel)]="productForm.description" name="description" rows="3" required></textarea>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Prix (dt)</label>
+            <input type="number" class="form-control" [(ngModel)]="productForm.prix" name="prix" min="0" step="0.01">
+          </div>
+          
+          <div class="form-group">
+            <label>Quantité</label>
+            <input type="number" class="form-control" [(ngModel)]="productForm.quantite" name="quantite" min="0">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>Images</label>
+          <input type="file" class="form-control" (change)="onFileSelect($event)" multiple accept="image/*">
+          <small class="form-text">Vous pouvez sélectionner plusieurs images</small>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="closeAllForms()">Annuler</button>
+          <button type="submit" class="btn btn-primary">{{editingProduct ? 'Modifier' : 'Créer'}}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Formulaire Catégorie -->
+  <div *ngIf="showCategoryForm" class="modal-overlay" (click)="closeAllForms()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{editingCategory ? 'Modifier' : 'Nouvelle'}} Catégorie</h3>
+        <button class="btn-close" (click)="closeAllForms()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <form class="category-form" (ngSubmit)="saveCategory()">
+        <div class="form-group">
+          <label>Nom de la catégorie *</label>
+          <input type="text" class="form-control" [(ngModel)]="categoryForm.nom" name="nom" required>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="closeAllForms()">Annuler</button>
+          <button type="submit" class="btn btn-primary">{{editingCategory ? 'Modifier' : 'Créer'}}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

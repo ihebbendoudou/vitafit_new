@@ -1,0 +1,136 @@
+<div class="coach-management-container">
+  <div class="header">
+    <h2>Gestion des Coachs</h2>
+    <div class="actions">
+      <div class="search-box">
+        <input type="text" [(ngModel)]="searchQuery" placeholder="Rechercher un coach..." (input)="searchCoachs()">
+        <i class="fas fa-search"></i>
+      </div>
+      <button class="btn-add" (click)="openAddForm()">
+        <i class="fas fa-plus"></i> Ajouter un coach
+      </button>
+    </div>
+  </div>
+
+  <div class="alert alert-success" *ngIf="successMessage">
+    {{ successMessage }}
+    <button class="close-btn" (click)="successMessage = ''">&times;</button>
+  </div>
+  <div class="alert alert-error" *ngIf="errorMessage">
+    {{ errorMessage }}
+    <button class="close-btn" (click)="errorMessage = ''">&times;</button>
+  </div>
+
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Nom complet</th>
+          <th>prenom</th>
+          <th>Email</th>
+          <th>Téléphone</th>
+          <th>Spécialité</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngIf="loading">
+          <td colspan="5" class="text-center">
+            <div class="loader"></div>
+            Chargement des données...
+          </td>
+        </tr>
+        <tr *ngIf="!loading && filteredCoachs.length === 0">
+          <td colspan="5" class="text-center">
+            Aucun coach trouvé.
+          </td>
+        </tr>
+        <tr *ngFor="let coach of filteredCoachs">
+          <td>{{ coach.nom }}</td>
+          <td>{{ coach.prenom }}</td>
+          <td>{{ coach.email }}</td>
+          <td>{{ coach.telephone }}</td>
+          <td>{{ coach.specialite }}</td>
+          <td class="actions-cell">
+            <button class="btn-edit" (click)="openEditForm(coach)">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn-delete" (click)="deleteCoach(coach.id!)">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="modal" *ngIf="showForm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>{{ isEditing ? 'Modifier le coach' : 'Ajouter un nouveau coach' }}</h3>
+        <button class="close-btn" (click)="closeForm()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="coachForm" (ngSubmit)="submitForm()">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="nom">Nom *</label>
+              <input type="text" id="nom" formControlName="nom" placeholder="Nom  du coach">
+              <div class="error-message" *ngIf="coachForm.get('nom')?.invalid && coachForm.get('nom')?.touched">
+                Le nom  est requis
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+              <div class="form-group">
+                <label for="prenom">prenom *</label>
+                <input type="text" id="prenom" formControlName="prenom" placeholder="prenom  du coach">
+                <div class="error-message" *ngIf="coachForm.get('prenom')?.invalid && coachForm.get('prenom')?.touched">
+                  Le prenom  est requis
+                </div>
+              </div>
+            </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="email">Email*</label>
+              <input type="email" id="email" formControlName="email" placeholder="Email du coach">
+              <div class="error-message" *ngIf="coachForm.get('email')?.invalid && coachForm.get('email')?.touched">
+                Un email valide est requis
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="telephone">Téléphone*</label>
+              <input type="text" id="telephone" formControlName="telephone" placeholder="Numéro de téléphone">
+              <div class="error-message" *ngIf="coachForm.get('telephone')?.invalid && coachForm.get('telephone')?.touched">
+                Le numéro de téléphone est requis
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="specialite">Spécialité*</label>
+              <input type="text" id="specialite" formControlName="specialite" placeholder="Spécialité du coach">
+              <div class="error-message" *ngIf="coachForm.get('specialite')?.invalid && coachForm.get('specialite')?.touched">
+                La spécialité est requise
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="mot_de_passe">Mot de passe</label>
+              <input type="password" id="mot_de_passe" formControlName="mot_de_passe" placeholder="Mot de passe du coach">              </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-cancel" (click)="closeForm()">Annuler</button>
+            <button type="submit" class="btn-submit" [disabled]="loading">
+              <span *ngIf="loading"><div class="loader-small"></div> Traitement...</span>
+              <span *ngIf="!loading">{{ isEditing ? 'Mettre à jour' : 'Ajouter' }}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

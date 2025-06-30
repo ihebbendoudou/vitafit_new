@@ -1,0 +1,117 @@
+.analyse-container {
+  padding: 1rem;
+}
+
+/* Styles pour les cartes de graphiques */
+.chart-card {
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+  padding: 1rem 1.5rem;
+}
+
+.chart-header h5 {
+  color: #2c3e50;
+  font-weight: 600;
+  margin-bottom: 0;
+}
+
+.chart-body {
+  padding: 1.5rem;
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Styles pour les cartes de statistiques */
+.stats-container {
+  margin-top: 1rem;
+}
+
+.stat-card {
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+}
+
+.stat-icon {
+  background-color: rgba(78, 115, 223, 0.1);
+  color: #4e73df;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-right: 1rem;
+}
+
+.stat-content h6 {
+  color: #2c3e50;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #4e73df;
+  margin-bottom: 0;
+}
+
+/* Styles pour les boutons */
+.btn-outline-primary {
+  color: #4e73df;
+  border-color: #4e73df;
+  background-color: transparent;
+  transition: all 0.3s;
+}
+
+.btn-outline-primary:hover {
+  background-color: #4e73df;
+  color: white;
+  transform: translateY(-2px);
+}
+
+/* Styles pour les alertes */
+.alert {
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+/* Styles pour le spinner de chargement */
+.spinner-border {
+  width: 3rem;
+  height: 3rem;
+  color: #4e73df;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+  .chart-card {
+    margin-bottom: 1.5rem;
+  }
+}

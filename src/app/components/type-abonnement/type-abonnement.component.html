@@ -1,0 +1,59 @@
+<!-- Interface utilisateur avec formulaire et tableau -->
+<div class="container">
+  <h2>Gestion des Types d'Abonnement</h2>
+
+  <!-- Formulaire -->
+  <form [formGroup]="abonnementForm" (ngSubmit)="onSubmit()" class="form-container">
+    <div class="form-group">
+      <label for="nom">Nom:</label>
+      <input type="text" id="nom" formControlName="nom" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label for="duree">Durée (jours):</label>
+      <input type="number" id="duree" formControlName="duree_jours" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label for="prix">Prix:</label>
+      <input type="number" id="prix" formControlName="prix" class="form-control">
+    </div>
+
+    <div class="form-group checkbox">
+      <label>
+        <input type="checkbox" formControlName="avec_coach"> Avec coach
+      </label>
+    </div>
+
+    <button type="submit" class="btn btn-primary">
+      {{ isEditing ? 'Mettre à jour' : 'Ajouter' }}
+    </button>
+  </form>
+
+  <!-- Tableau des abonnements -->
+  <div class="users-table">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Durée</th>
+          <th>Prix</th>
+          <th>Avec Coach</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let abonnement of abonnements">
+          <td>{{ abonnement.nom }}</td>
+          <td>{{ abonnement.duree_jours }} jours</td>
+          <td>{{ abonnement.prix }} DT</td>
+          <td>{{ abonnement.avec_coach ? 'Oui' : 'Non' }}</td>
+          <td>
+            <button (click)="editAbonnement(abonnement)" class="btn btn-sm btn-warning">Modifier</button>
+            <button (click)="deleteAbonnement(abonnement.id)" class="btn btn-sm btn-danger">Supprimer</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

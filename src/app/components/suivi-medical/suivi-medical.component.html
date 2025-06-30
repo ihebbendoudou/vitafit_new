@@ -1,0 +1,445 @@
+<div class="suivi-medical-container">
+    <div class="header">
+      <h2>Gestion des Suivis Médicaux</h2>
+      <p>Assignez des adhérents ayant des problèmes de santé à des médecins partenaires</p>
+    </div>
+  
+    <!-- Alerte pour les messages de succès/erreur -->
+    <div *ngIf="showAlert" class="alert" [ngClass]="'alert-' + alertType">
+      {{ alertMessage }}
+      <button type="button" class="close-btn" (click)="showAlert = false">&times;</button>
+    </div>
+  
+    <!-- Formulaire de création/édition de suivi médical -->
+    <div class="form-container">
+      <h3>{{ isEditing ? 'Modifier le suivi médical' : 'Nouveau suivi médical' }}</h3>
+      <form [formGroup]="suiviForm" (ngSubmit)="onSubmit()">
+        <div class="form-group">
+          <label for="user_search">Adhérent</label>
+          <div class="autocomplete-container">
+            <input type="text" id="user_search" [(ngModel)]="searchTerm" 
+                   [ngModelOptions]="{standalone: true}"
+                   placeholder="Rechercher un adhérent..." 
+                   (input)="filterUsers()" 
+                   class="form-control search-input">
+            
+            <div class="suggestions-dropdown" *ngIf="showSuggestions">
+              <ul class="suggestions-list">
+                <li *ngFor="let user of filteredUsers" 
+                    (click)="selectUser(user)"
+                    class="suggestion-item">
+                  {{ user.nom }} {{ user.prenom }} ({{ user.email }})
+                </li>
+              </ul>
+            </div>
+            
+            <input type="hidden" formControlName="user_id">
+          </div>
+          <div *ngIf="suiviForm.get('user_id')?.invalid && suiviForm.get('user_id')?.touched" class="error-message">
+            Veuillez sélectionner un adhérent
+          </div>
+        </div>
+  
+        <div class="form-group">
+          <label for="medecin_id">Médecin</label>
+          <select id="medecin_id" formControlName="medecin_id" class="form-control" 
+                  [ngClass]="{'is-invalid': suiviForm.get('medecin_id')?.invalid && suiviForm.get('medecin_id')?.touched}">
+            <option value="">Sélectionnez un médecin</option>
+            <option *ngFor="let medecin of medecins" [value]="medecin.id">{{ medecin.nom }}</option>
+          </select>
+          <div *ngIf="suiviForm.get('medecin_id')?.invalid && suiviForm.get('medecin_id')?.touched" class="error-message">
+            Veuillez sélectionner un médecin
+          </div>
+        </div>
+  
+        <div class="form-group">
+          <label for="diagnostic">Diagnostic</label>
+          <textarea id="diagnostic" formControlName="diagnostic" class="form-control" rows="3"
+                    placeholder="Entrez le diagnostic"
+                    [ngClass]="{'is-invalid': suiviForm.get('diagnostic')?.invalid && suiviForm.get('diagnostic')?.touched}"></textarea>
+          <div *ngIf="suiviForm.get('diagnostic')?.invalid && suiviForm.get('diagnostic')?.touched" class="error-message">
+            Veuillez saisir un diagnostic
+          </div>
+        </div>
+  
+        <div class="form-group">
+          <label for="recommandations">Recommandations</label>
+          <textarea id="recommandations" formControlName="recommandations" class="form-control" rows="3"
+                    placeholder="Entrez les recommandations"
+                    [ngClass]="{'is-invalid': suiviForm.get('recommandations')?.invalid && suiviForm.get('recommandations')?.touched}"></textarea>
+          <div *ngIf="suiviForm.get('recommandations')?.invalid && suiviForm.get('recommandations')?.touched" class="error-message">
+            Veuillez saisir des recommandations
+          </div>
+        </div>
+  
+        <div class="form-actions">
+          <button type="submit" [disabled]="isLoading" class="btn btn-primary">
+            {{ isEditing ? 'Mettre à jour' : 'Créer' }}
+            <span *ngIf="isLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          </button>
+          <button type="button" class="btn btn-secondary" (click)="resetForm()" [disabled]="isLoading">Annuler</button>
+        </div>
+      </form>
+    </div>
+  
+    <!-- Liste des suivis médicaux -->
+    <div class="list-container">
+      <h3>Liste des Suivis Médicaux</h3>
+      <div *ngIf="isLoading" class="loading">Chargement en cours...</div>
+      <div *ngIf="!isLoading && suivis.length === 0" class="no-results">
+        Aucun suivi médical trouvé
+      </div>
+      <div class="table-responsive" *ngIf="!isLoading && suivis.length > 0">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Adhérent</th>
+              <th>Médecin</th>
+              <th>Diagnostic</th>
+              <th>Recommandations</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let suivi of suivis">
+              <td>{{ getUserName(suivi.user_id) }}</td>
+              <td>{{ getMedecinName(suivi.medecin_id) }}</td>
+              <td>{{ suivi.diagnostic }}</td>
+              <td>{{ suivi.recommandations }}</td>
+              <td class="actions">
+                <button class="btn btn-sm btn-info" (click)="editSuivi(suivi)">Modifier</button>
+                <button class="btn btn-sm btn-danger" (click)="deleteSuivi(suivi.id!)">Supprimer</button>
+                <button class="btn btn-sm btn-success" (click)="showHealthDetails(suivi.user_id)">Santé</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  
+  <!-- Popup pour les données de santé -->
+  <!-- Popup pour les données de santé -->
+  <div class="health-popup-overlay" *ngIf="showHealthPopup" (click)="closeHealthPopup()">
+    <div class="health-popup" (click)="$event.stopPropagation()">
+      <div class="health-popup-header">
+        <h3>Données de Santé</h3>
+        <div class="health-popup-actions">
+          <button *ngIf="!editingHealth && currentHealthData" type="button" class="btn btn-sm btn-primary" (click)="editHealthData()">Modifier</button>
+          <button *ngIf="!editingHealth && !currentHealthData" type="button" class="btn btn-sm btn-success" (click)="createNewHealthData()">Créer</button>
+          <button *ngIf="!editingHealth && currentHealthData" type="button" class="btn btn-sm btn-danger" (click)="confirmDeleteHealthData()">Supprimer</button>
+          <button type="button" class="close-btn" (click)="closeHealthPopup()">&times;</button>
+        </div>
+      </div>
+      <div class="health-popup-content">
+        <div *ngIf="loadingHealthData" class="loading">Chargement des données de santé...</div>
+        <div *ngIf="!loadingHealthData && !currentHealthData && !editingHealth" class="no-results">
+          Aucune donnée de santé trouvée pour cet adhérent
+          <div class="mt-3">
+            <button type="button" class="btn btn-success" (click)="createNewHealthData()">Ajouter des données de santé</button>
+          </div>
+        </div>
+        
+        <!-- Formulaire d'édition des données de santé -->
+        <form *ngIf="editingHealth" [formGroup]="healthForm" (ngSubmit)="saveHealthData()" class="health-form">
+          <div class="health-section">
+            <h4>Mesures Corporelles</h4>
+            <div class="health-grid">
+              <div class="health-form-item">
+                <label for="imc">IMC</label>
+                <input type="number" id="imc" formControlName="imc" step="0.01">
+              </div>
+              <div class="health-form-item">
+                <label for="tour_taille">Tour de taille (cm)</label>
+                <input type="number" id="tour_taille" formControlName="tour_taille" step="0.1">
+              </div>
+              <div class="health-form-item">
+                <label for="tour_hanches">Tour de hanches (cm)</label>
+                <input type="number" id="tour_hanches" formControlName="tour_hanches" step="0.1">
+              </div>
+              <div class="health-form-item">
+                <label for="tour_bras">Tour de bras (cm)</label>
+                <input type="number" id="tour_bras" formControlName="tour_bras" step="0.1">
+              </div>
+              <div class="health-form-item">
+                <label for="tour_cuisses">Tour de cuisses (cm)</label>
+                <input type="number" id="tour_cuisses" formControlName="tour_cuisses" step="0.1">
+              </div>
+              <div class="health-form-item">
+                <label for="graisse_corporelle">Graisse corporelle (%)</label>
+                <input type="number" id="graisse_corporelle" formControlName="graisse_corporelle" step="0.1">
+              </div>
+              <div class="health-form-item">
+                <label for="masse_musculaire">Masse musculaire (%)</label>
+                <input type="number" id="masse_musculaire" formControlName="masse_musculaire" step="0.1">
+              </div>
+              <div class="health-form-item">
+                <label for="hydratation">Hydratation (%)</label>
+                <input type="number" id="hydratation" formControlName="hydratation" step="0.1">
+              </div>
+            </div>
+          </div>
+          
+          <div class="health-section">
+            <h4>Paramètres Vitaux</h4>
+            <div class="health-grid">
+              <div class="health-form-item">
+                <label for="tension_arterielle">Tension artérielle</label>
+                <input type="text" id="tension_arterielle" formControlName="tension_arterielle">
+              </div>
+              <div class="health-form-item">
+                <label for="frequence_cardiaque">Fréquence cardiaque (bpm)</label>
+                <input type="number" id="frequence_cardiaque" formControlName="frequence_cardiaque">
+              </div>
+              <div class="health-form-item">
+                <label for="glycemie">Glycémie (g/L)</label>
+                <input type="number" id="glycemie" formControlName="glycemie" step="0.01">
+              </div>
+              <div class="health-form-item">
+                <label for="ferritine">Ferritine (µg/L)</label>
+                <input type="number" id="ferritine" formControlName="ferritine">
+              </div>
+              <div class="health-form-item">
+                <label for="cholesterol">Cholestérol (g/L)</label>
+                <input type="number" id="cholesterol" formControlName="cholesterol" step="0.01">
+              </div>
+            </div>
+          </div>
+          
+          <div class="health-section">
+            <h4>Activité Physique</h4>
+            <div class="health-grid">
+              <div class="health-form-item">
+                <label for="activite_physique">Niveau d'activité</label>
+                <select id="activite_physique" formControlName="activite_physique">
+                  <option value="Sédentaire">Sédentaire</option>
+                  <option value="Légère">Légère</option>
+                  <option value="Modérée">Modérée</option>
+                  <option value="Intense">Intense</option>
+                  <option value="Très intense">Très intense</option>
+                </select>
+              </div>
+              <div class="health-form-item">
+                <label for="activite_physique_type">Type d'activité</label>
+                <input type="text" id="activite_physique_type" formControlName="activite_physique_type">
+              </div>
+              <div class="health-form-item">
+                <label for="frequence_activite">Fréquence</label>
+                <select id="frequence_activite" formControlName="frequence_activite">
+                  <option value="Jamais">Jamais</option>
+                  <option value="Occasionnellement">Occasionnellement</option>
+                  <option value="1-2 fois/semaine">1-2 fois/semaine</option>
+                  <option value="3-5 fois/semaine">3-5 fois/semaine</option>
+                  <option value="Quotidiennement">Quotidiennement</option>
+                </select>
+              </div>
+              <div class="health-form-item">
+                <label for="duree_activite_minutes">Durée (min)</label>
+                <input type="number" id="duree_activite_minutes" formControlName="duree_activite_minutes">
+              </div>
+            </div>
+          </div>
+          
+          <div class="health-section">
+            <h4>Habitudes de Vie</h4>
+            <div class="health-grid">
+              <div class="health-form-item">
+                <label for="sommeil_heures">Sommeil (heures)</label>
+                <input type="number" id="sommeil_heures" formControlName="sommeil_heures" step="0.5">
+              </div>
+              <div class="health-form-item">
+                <label for="qualite_sommeil">Qualité du sommeil</label>
+                <select id="qualite_sommeil" formControlName="qualite_sommeil">
+                  <option value="Très mauvaise">Très mauvaise</option>
+                  <option value="Mauvaise">Mauvaise</option>
+                  <option value="Moyenne">Moyenne</option>
+                  <option value="Bonne">Bonne</option>
+                  <option value="Très bonne">Très bonne</option>
+                </select>
+              </div>
+              <div class="health-form-item">
+                <label for="stress">Niveau de stress</label>
+                <select id="stress" formControlName="stress">
+                  <option value="Très bas">Très bas</option>
+                  <option value="Bas">Bas</option>
+                  <option value="Moyen">Moyen</option>
+                  <option value="Élevé">Élevé</option>
+                  <option value="Très élevé">Très élevé</option>
+                </select>
+              </div>
+              <div class="health-form-item">
+                <label for="hydratation_litres">Hydratation quotidienne (L)</label>
+                <input type="number" id="hydratation_litres" formControlName="hydratation_litres" step="0.1">
+              </div>
+              <div class="health-form-item">
+                <label for="journal_alimentaire">Alimentation</label>
+                <textarea id="journal_alimentaire" formControlName="journal_alimentaire" rows="2"></textarea>
+              </div>
+              <div class="health-form-item">
+                <label for="score_conformite_alimentaire">Score alimentaire (/100)</label>
+                <input type="number" id="score_conformite_alimentaire" formControlName="score_conformite_alimentaire" min="0" max="100">
+              </div>
+            </div>
+          </div>
+          
+          <div class="health-section">
+            <h4>Informations Médicales</h4>
+            <div class="health-grid">
+              <div class="health-form-item full-width">
+                <label for="pathologies">Pathologies</label>
+                <textarea id="pathologies" formControlName="pathologies" rows="2"></textarea>
+              </div>
+              <div class="health-form-item">
+                <label for="date_diagnostic">Date du diagnostic</label>
+                <input type="date" id="date_diagnostic" formControlName="date_diagnostic">
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" [disabled]="savingHealth">
+              Enregistrer
+              <span *ngIf="savingHealth" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="cancelHealthEdit()">Annuler</button>
+          </div>
+        </form>
+        
+        <!-- Affichage des données de santé -->
+        <div *ngIf="!loadingHealthData && currentHealthData && !editingHealth" class="health-data">
+          <div class="health-section">
+            <h4>Mesures Corporelles</h4>
+            <div class="health-grid">
+              <div class="health-item">
+                <span class="health-label">IMC</span>
+                <span class="health-value">{{ displayValue(currentHealthData.imc) }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Tour de taille</span>
+                <span class="health-value">{{ displayValue(currentHealthData.tour_taille, ' cm') }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Tour de hanches</span>
+                <span class="health-value">{{ displayValue(currentHealthData.tour_hanches, ' cm') }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Tour de bras</span>
+                <span class="health-value">{{ displayValue(currentHealthData.tour_bras, ' cm') }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Tour de cuisses</span>
+                <span class="health-value">{{ displayValue(currentHealthData.tour_cuisses, ' cm') }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Graisse corporelle</span>
+                <span class="health-value">{{ displayValue(currentHealthData.graisse_corporelle, '%') }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Masse musculaire</span>
+                <span class="health-value">{{ displayValue(currentHealthData.masse_musculaire, '%') }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Hydratation</span>
+                <span class="health-value">{{ displayValue(currentHealthData.hydratation, '%') }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="health-section">
+            <h4>Paramètres Vitaux</h4>
+            <div class="health-grid">
+              <div class="health-item">
+                <span class="health-label">Tension artérielle</span>
+                <span class="health-value">{{ displayValue(currentHealthData.tension_arterielle) }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Fréquence cardiaque</span>
+                <span class="health-value">{{ displayValue(currentHealthData.frequence_cardiaque, ' bpm') }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Glycémie</span>
+                <span class="health-value">{{ displayValue(currentHealthData.glycemie, ' g/L') }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Ferritine</span>
+                <span class="health-value">{{ displayValue(currentHealthData.ferritine, ' µg/L') }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Cholestérol</span>
+                <span class="health-value">{{ displayValue(currentHealthData.cholesterol, ' g/L') }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="health-section">
+            <h4>Activité Physique</h4>
+            <div class="health-grid">
+              <div class="health-item">
+                <span class="health-label">Niveau d'activité</span>
+                <span class="health-value">{{ displayValue(currentHealthData.activite_physique) }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Type d'activité</span>
+                <span class="health-value">{{ displayValue(currentHealthData.activite_physique_type) }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Fréquence</span>
+                <span class="health-value">{{ displayValue(currentHealthData.frequence_activite) }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Durée</span>
+                <span class="health-value">{{ displayValue(currentHealthData.duree_activite_minutes, ' min') }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="health-section">
+            <h4>Habitudes de Vie</h4>
+            <div class="health-grid">
+              <div class="health-item">
+                <span class="health-label">Sommeil</span>
+                <span class="health-value">{{ displayValue(currentHealthData.sommeil_heures, ' heures') }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Qualité du sommeil</span>
+                <span class="health-value">{{ displayValue(currentHealthData.qualite_sommeil) }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Niveau de stress</span>
+                <span class="health-value">{{ displayValue(currentHealthData.stress) }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Hydratation quotidienne</span>
+                <span class="health-value">{{ displayValue(currentHealthData.hydratation_litres, ' L') }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Alimentation</span>
+                <span class="health-value">{{ displayValue(currentHealthData.journal_alimentaire) }}</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Score alimentaire</span>
+                <span class="health-value">{{ displayValue(currentHealthData.score_conformite_alimentaire, '/100') }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="health-section">
+            <h4>Informations Médicales</h4>
+            <div class="health-grid">
+              <div class="health-item full-width">
+                <span class="health-label">Pathologies</span>
+                <span class="health-value">{{ displayValue(currentHealthData.pathologies, '', 'Aucune') }}</span>
+              </div>
+              <div class="health-item full-width" *ngIf="hasValue(currentHealthData.date_diagnostic)">
+                <span class="health-label">Date du diagnostic</span>
+                <span class="health-value">{{ currentHealthData.date_diagnostic | date:'dd/MM/yyyy' }}</span>
+              </div>
+              <div class="health-item full-width" *ngIf="hasValue(currentHealthData.date_enregistrement)">
+                <span class="health-label">Date d'enregistrement</span>
+                <span class="health-value">{{ currentHealthData.date_enregistrement | date:'dd/MM/yyyy' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>

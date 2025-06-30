@@ -1,0 +1,524 @@
+<div class="patients-container">
+  <div class="header">
+    <h2>
+      <i class="fas fa-users"></i>
+      Mes Patients
+    </h2>
+    <button (click)="refreshPatients()" class="btn-refresh" [disabled]="loading">
+      <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i>
+      Actualiser
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Chargement des patients...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <i class="fas fa-exclamation-triangle"></i>
+    <p>{{ error }}</p>
+    <button (click)="refreshPatients()" class="btn-retry">
+      <i class="fas fa-redo"></i>
+      Réessayer
+    </button>
+  </div>
+
+  <!-- Patients List -->
+  <div *ngIf="!loading && !error" class="patients-content">
+    <!-- Statistics -->
+    <div class="stats-card">
+      <div class="stat-item">
+        <div class="stat-number">{{ patients.length }}</div>
+        <div class="stat-label">Patient(s) suivi(s)</div>
+      </div>
+    </div>
+
+    <!-- Search Filter -->
+    <div class="search-section">
+      <div class="search-container">
+        <div class="search-input-wrapper">
+          <i class="fas fa-search search-icon"></i>
+          <input 
+            type="text" 
+            class="search-input" 
+            placeholder="Rechercher un patient (nom, prénom, email, téléphone...)"
+            [(ngModel)]="searchTerm"
+            (input)="filterPatients()"
+          >
+          <button 
+            *ngIf="searchTerm" 
+            class="clear-search-btn" 
+            (click)="searchTerm = ''; filterPatients()"
+            title="Effacer la recherche"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="search-results-info" *ngIf="searchTerm">
+          <span class="results-count">{{ filteredPatients.length }}</span> patient(s) trouvé(s)
+        </div>
+      </div>
+    </div>
+
+<!-- Modal pour ajouter un suivi médical -->
+<div *ngIf="showSuiviModal" class="modal-overlay" (click)="closeSuiviModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>
+        <i class="fas fa-plus-circle"></i>
+        Ajouter un suivi médical pour {{ selectedPatientForSuivi?.user_prenom }} {{ selectedPatientForSuivi?.user_nom }}
+      </h3>
+      <button class="btn-close" (click)="closeSuiviModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="modal-content">
+      <!-- Message d'erreur -->
+      <div *ngIf="suiviError" class="error-message">
+        <i class="fas fa-exclamation-triangle"></i>
+        {{ suiviError }}
+      </div>
+
+      <form (ngSubmit)="saveSuivi()" #suiviFormRef="ngForm">
+        <!-- Informations générales -->
+        <div class="form-section">
+          <h4><i class="fas fa-calendar-alt"></i> Informations générales</h4>
+          <div class="form-group">
+            <label for="date_suivi">Date du suivi *</label>
+            <input 
+              type="date" 
+              id="date_suivi" 
+              name="date_suivi"
+              [(ngModel)]="suiviForm.date_suivi" 
+              required 
+              class="form-control">
+          </div>
+        </div>
+
+        <!-- Mesures corporelles -->
+        <div class="form-section">
+          <h4><i class="fas fa-weight"></i> Mesures corporelles</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="poids">Poids (kg) *</label>
+              <input 
+                type="number" 
+                id="poids" 
+                name="poids"
+                [(ngModel)]="suiviForm.poids" 
+                required 
+                min="0" 
+                step="0.1" 
+                class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="imc">IMC *</label>
+              <input 
+                type="number" 
+                id="imc" 
+                name="imc"
+                [(ngModel)]="suiviForm.imc" 
+                required 
+                min="0" 
+                step="0.1" 
+                class="form-control">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="tour_taille">Tour de taille (cm)</label>
+              <input 
+                type="number" 
+                id="tour_taille" 
+                name="tour_taille"
+                [(ngModel)]="suiviForm.tour_taille" 
+                min="0" 
+                class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="tour_hanches">Tour de hanches (cm)</label>
+              <input 
+                type="number" 
+                id="tour_hanches" 
+                name="tour_hanches"
+                [(ngModel)]="suiviForm.tour_hanches" 
+                min="0" 
+                class="form-control">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="tour_bras">Tour de bras (cm)</label>
+              <input 
+                type="number" 
+                id="tour_bras" 
+                name="tour_bras"
+                [(ngModel)]="suiviForm.tour_bras" 
+                min="0" 
+                class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="tour_cuisses">Tour de cuisses (cm)</label>
+              <input 
+                type="number" 
+                id="tour_cuisses" 
+                name="tour_cuisses"
+                [(ngModel)]="suiviForm.tour_cuisses" 
+                min="0" 
+                class="form-control">
+            </div>
+          </div>
+        </div>
+
+        <!-- État général -->
+        <div class="form-section">
+          <h4><i class="fas fa-heartbeat"></i> État général</h4>
+          <div class="form-group">
+            <label for="niveau_energie">Niveau d'énergie</label>
+            <select 
+              id="niveau_energie" 
+              name="niveau_energie"
+              [(ngModel)]="suiviForm.niveau_energie" 
+              class="form-control">
+              <option value="">Sélectionner...</option>
+              <option value="Très faible">Très faible</option>
+              <option value="Faible">Faible</option>
+              <option value="Moyen">Moyen</option>
+              <option value="Bon">Bon</option>
+              <option value="Excellent">Excellent</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="adherence_programme">Adhérence au programme</label>
+            <select 
+              id="adherence_programme" 
+              name="adherence_programme"
+              [(ngModel)]="suiviForm.adherence_programme" 
+              class="form-control">
+              <option value="">Sélectionner...</option>
+              <option value="Très faible">Très faible</option>
+              <option value="Faible">Faible</option>
+              <option value="Moyenne">Moyenne</option>
+              <option value="Bonne">Bonne</option>
+              <option value="Excellente">Excellente</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Observations -->
+        <div class="form-section">
+          <h4><i class="fas fa-notes-medical"></i> Observations</h4>
+          <div class="form-group">
+            <label for="observations">Observations et notes</label>
+            <textarea 
+              id="observations" 
+              name="observations"
+              [(ngModel)]="suiviForm.observations" 
+              rows="4" 
+              class="form-control" 
+              placeholder="Observations, recommandations, notes diverses..."></textarea>
+          </div>
+        </div>
+
+        <!-- Upload de photo -->
+        <div class="form-section">
+          <h4><i class="fas fa-camera"></i> Photo de suivi</h4>
+          <div class="form-group">
+            <label for="photo">Ajouter une photo (optionnel)</label>
+            <input 
+              type="file" 
+              id="photo" 
+              name="photo"
+              (change)="onFileSelected($event)" 
+              accept="image/*" 
+              class="form-control">
+            <small class="form-text">Formats acceptés: JPG, PNG, GIF (max 5MB)</small>
+          </div>
+        </div>
+
+        <!-- Boutons d'action -->
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" (click)="closeSuiviModal()" [disabled]="loadingSuivi">
+            <i class="fas fa-times"></i>
+            Annuler
+          </button>
+          <button type="submit" class="btn btn-primary" [disabled]="loadingSuivi || uploadingImage">
+            <i *ngIf="loadingSuivi || uploadingImage" class="fas fa-spinner fa-spin"></i>
+            <i *ngIf="!loadingSuivi && !uploadingImage" class="fas fa-save"></i>
+            {{ (loadingSuivi || uploadingImage) ? 'Enregistrement...' : 'Enregistrer' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+
+    <!-- No Patients -->
+    <div *ngIf="filteredPatients.length === 0 && !loading" class="no-patients">
+      <i class="fas fa-user-friends"></i>
+      <h3 *ngIf="!searchTerm">Aucun patient trouvé</h3>
+      <h3 *ngIf="searchTerm">Aucun patient ne correspond à votre recherche</h3>
+      <p *ngIf="!searchTerm">Vous n'avez actuellement aucun patient en suivi.</p>
+      <p *ngIf="searchTerm">Essayez avec d'autres mots-clés ou effacez la recherche pour voir tous les patients.</p>
+    </div>
+
+    <!-- Patients Grid -->
+    <div *ngIf="filteredPatients.length > 0" class="patients-grid">
+      <div *ngFor="let patient of filteredPatients" class="patient-card">
+        <div class="patient-header">
+          <div class="patient-avatar">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="patient-info">
+            <h3>{{ patient.user_prenom }} {{ patient.user_nom }}</h3>
+            <p class="patient-email">{{ patient.user_email }}</p>
+          </div>
+          <div class="patient-status">
+            <span class="status-badge active">Actif</span>
+          </div>
+        </div>
+
+        <div class="patient-details">
+          <div class="detail-row">
+            <i class="fas fa-phone"></i>
+            <span>{{ patient.user_tel }}</span>
+          </div>
+          <div class="detail-row">
+            <i class="fas fa-map-marker-alt"></i>
+            <span>{{ patient.user_adresse }}</span>
+          </div>
+          <div class="detail-row">
+            <i class="fas fa-calendar"></i>
+            <span>Suivi depuis le {{ formatDate(patient.date_suivi) }}</span>
+          </div>
+        </div>
+
+        <div class="patient-medical">
+          <div class="medical-section">
+            <h4><i class="fas fa-stethoscope"></i> Diagnostic</h4>
+            <p>{{ patient.diagnostic || 'Aucun diagnostic renseigné' }}</p>
+          </div>
+          <div class="medical-section">
+            <h4><i class="fas fa-clipboard-list"></i> Recommandations</h4>
+            <p>{{ patient.recommandations || 'Aucune recommandation renseignée' }}</p>
+          </div>
+        </div>
+
+        <div class="patient-actions">
+          <button class="btn-action btn-primary" (click)="viewPatientDossier(patient)">
+            <i class="fas fa-eye"></i>
+            Voir le dossier
+          </button>
+          <button class="btn-action btn-secondary" (click)="openSuiviModal(patient)">
+            <i class="fas fa-edit"></i>
+            ajouter suivi rapidement
+          </button>
+          <button class="btn-action btn-info">
+            <i class="fas fa-comments"></i>
+            Contacter
+          </button>
+        </div>
+</div>
+
+   </div>
+ </div>
+</div>
+
+<!-- Modal pour afficher les données de santé -->
+<div *ngIf="showHealthModal" class="health-modal-overlay" (click)="closeHealthModal()">
+  <div class="health-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>
+        <i class="fas fa-file-medical"></i>
+        Dossier médical de {{ selectedPatient?.user_prenom }} {{ selectedPatient?.user_nom }}
+      </h3>
+      <button class="btn-close" (click)="closeHealthModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="modal-content">
+      <!-- Loading State -->
+      <div *ngIf="loadingHealthData" class="modal-loading">
+        <div class="spinner"></div>
+        <p>Chargement des données de santé...</p>
+      </div>
+
+      <!-- Error State -->
+      <div *ngIf="healthDataError && !loadingHealthData" class="modal-error">
+        <i class="fas fa-exclamation-triangle"></i>
+        <p>{{ healthDataError }}</p>
+      </div>
+
+      <!-- Health Data -->
+      <div *ngIf="healthData && !loadingHealthData && !healthDataError" class="health-data">
+        <!-- Informations générales -->
+        <div class="health-section">
+          <h4><i class="fas fa-info-circle"></i> Informations générales</h4>
+          <div class="health-grid">
+            <div class="health-item">
+              <label>IMC</label>
+              <span>{{ healthData.imc }}</span>
+            </div>
+            <div class="health-item">
+              <label>Date d'enregistrement</label>
+              <span>{{ formatDate(healthData.date_enregistrement) }}</span>
+            </div>
+            <div class="health-item">
+              <label>Date de diagnostic</label>
+              <span>{{ formatDate(healthData.date_diagnostic) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mesures corporelles -->
+        <div class="health-section">
+          <h4><i class="fas fa-ruler"></i> Mesures corporelles</h4>
+          <div class="health-grid">
+            <div class="health-item">
+              <label>Tour de taille</label>
+              <span>{{ healthData.tour_taille }} cm</span>
+            </div>
+            <div class="health-item">
+              <label>Tour de hanches</label>
+              <span>{{ healthData.tour_hanches }} cm</span>
+            </div>
+            <div class="health-item">
+              <label>Tour de bras</label>
+              <span>{{ healthData.tour_bras }} cm</span>
+            </div>
+            <div class="health-item">
+              <label>Tour de cuisses</label>
+              <span>{{ healthData.tour_cuisses }} cm</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Composition corporelle -->
+        <div class="health-section">
+          <h4><i class="fas fa-weight"></i> Composition corporelle</h4>
+          <div class="health-grid">
+            <div class="health-item">
+              <label>Graisse corporelle</label>
+              <span>{{ healthData.graisse_corporelle }}%</span>
+            </div>
+            <div class="health-item">
+              <label>Masse musculaire</label>
+              <span>{{ healthData.masse_musculaire }}%</span>
+            </div>
+            <div class="health-item">
+              <label>Hydratation</label>
+              <span>{{ healthData.hydratation }}%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paramètres vitaux -->
+        <div class="health-section">
+          <h4><i class="fas fa-heartbeat"></i> Paramètres vitaux</h4>
+          <div class="health-grid">
+            <div class="health-item">
+              <label>Tension artérielle</label>
+              <span>{{ healthData.tension_arterielle }}</span>
+            </div>
+            <div class="health-item">
+              <label>Fréquence cardiaque</label>
+              <span>{{ healthData.frequence_cardiaque }} bpm</span>
+            </div>
+            <div class="health-item">
+              <label>Glycémie</label>
+              <span>{{ healthData.glycemie }} mg/dL</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Analyses biologiques -->
+        <div class="health-section">
+          <h4><i class="fas fa-vial"></i> Analyses biologiques</h4>
+          <div class="health-grid">
+            <div class="health-item">
+              <label>Ferritine</label>
+              <span>{{ healthData.ferritine }} ng/mL</span>
+            </div>
+            <div class="health-item">
+              <label>Cholestérol</label>
+              <span>{{ healthData.cholesterol }} mg/dL</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Style de vie -->
+        <div class="health-section">
+          <h4><i class="fas fa-running"></i> Style de vie</h4>
+          <div class="health-grid">
+            <div class="health-item">
+              <label>Activité physique</label>
+              <span>{{ healthData.activite_physique }}</span>
+            </div>
+            <div class="health-item">
+              <label>Type d'activité</label>
+              <span>{{ healthData.activite_physique_type }}</span>
+            </div>
+            <div class="health-item">
+              <label>Fréquence d'activité</label>
+              <span>{{ healthData.frequence_activite }}</span>
+            </div>
+            <div class="health-item">
+              <label>Durée d'activité</label>
+              <span>{{ healthData.duree_activite_minutes }} min</span>
+            </div>
+            <div class="health-item">
+              <label>Heures de sommeil</label>
+              <span>{{ healthData.sommeil_heures }}h</span>
+            </div>
+            <div class="health-item">
+              <label>Qualité du sommeil</label>
+              <span>{{ healthData.qualite_sommeil }}</span>
+            </div>
+            <div class="health-item">
+              <label>Niveau de stress</label>
+              <span>{{ healthData.stress }}</span>
+            </div>
+            <div class="health-item">
+              <label>Hydratation quotidienne</label>
+              <span>{{ healthData.hydratation_litres }}L</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nutrition -->
+        <div class="health-section">
+          <h4><i class="fas fa-utensils"></i> Nutrition</h4>
+          <div class="health-grid">
+            <div class="health-item full-width">
+              <label>Journal alimentaire</label>
+              <span>{{ healthData.journal_alimentaire || 'Non renseigné' }}</span>
+            </div>
+            <div class="health-item">
+              <label>Score de conformité alimentaire</label>
+              <span>{{ healthData.score_conformite_alimentaire }}/10</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pathologies -->
+        <div class="health-section">
+          <h4><i class="fas fa-notes-medical"></i> Pathologies</h4>
+          <div class="health-grid">
+            <div class="health-item full-width">
+              <label>Pathologies connues</label>
+              <span>{{ healthData.pathologies || 'Aucune pathologie renseignée' }}</span>
+            </div>
+          </div>
+        </div>
+</div>
+
+   </div>
+ </div>
+</div>

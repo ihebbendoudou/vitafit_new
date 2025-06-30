@@ -1,0 +1,149 @@
+<div class="programme-table-container">
+  <!-- Header avec boutons d'action -->
+  <div class="table-header">
+    <h2>
+      <i class="fas fa-table"></i>
+      {{ title }}
+    </h2>
+    <div class="header-actions" *ngIf="selectedProgramme">
+      <button (click)="downloadPDF()" class="btn-download">
+        <i class="fas fa-file-pdf"></i>
+        Télécharger PDF
+      </button>
+      <button (click)="backToList()" class="btn-back">
+        <i class="fas fa-arrow-left"></i>
+        Retour
+      </button>
+    </div>
+  </div>
+
+  <!-- Liste des programmes -->
+  <div *ngIf="!selectedProgramme" class="programmes-list">
+    <div *ngIf="programmes.length === 0" class="no-programmes">
+      <i class="fas fa-clipboard-list"></i>
+      <h3>Aucun programme disponible</h3>
+      <p>{{ noDataMessage }}</p>
+    </div>
+
+    <div *ngIf="programmes.length > 0" class="programmes-grid">
+      <div *ngFor="let programme of programmes" class="programme-card" (click)="selectProgramme(programme)">
+        <div class="card-header">
+          <h3>{{ programme.nom }}</h3>
+          <span class="date">{{ formatDate(programme.created_at) }}</span>
+        </div>
+        
+        <div class="card-body">
+          <p class="description">{{ programme.description || 'Aucune description disponible' }}</p>
+          
+          <div class="programme-stats">
+            <div class="stat">
+              <i class="fas fa-calendar-day"></i>
+              <span>{{ programme.jours?.length || 0 }} jour(s)</span>
+            </div>
+            <div class="stat" *ngIf="showCoachInfo">
+              <i class="fas fa-user-tie"></i>
+              <span>Coach: {{ programme.coach_nom }} {{ programme.coach_prenom }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card-footer">
+          <button class="btn-view" (click)="selectProgramme(programme)">
+            <i class="fas fa-eye"></i>
+            Visualiser
+          </button>
+          <button class="btn-download-card" (click)="downloadPDF(programme)">
+            <i class="fas fa-download"></i>
+            Télécharger
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tableau du programme sélectionné -->
+  <div *ngIf="selectedProgramme" class="programme-table">
+    <!-- Informations du programme -->
+    <div class="programme-info">
+      <h3>{{ selectedProgramme.nom }}</h3>
+      <p class="description">{{ selectedProgramme.description }}</p>
+      <div class="meta-info">
+        <span>
+          <i class="fas fa-calendar-plus"></i>
+          Créé le {{ formatDate(selectedProgramme.created_at) }}
+        </span>
+        <span *ngIf="showCoachInfo">
+          <i class="fas fa-user-tie"></i>
+          Par {{ selectedProgramme.coach_nom }} {{ selectedProgramme.coach_prenom }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Tableau des exercices par jour -->
+    <div *ngIf="selectedProgramme.jours && selectedProgramme.jours.length > 0" class="table-container">
+      <table class="programme-table-grid">
+        <thead>
+          <tr>
+            <th class="exercice-column">Exercice</th>
+            <th *ngFor="let jour of selectedProgramme.jours" class="jour-column">
+              <div class="jour-header">
+                <span class="jour-number">J{{ jour.jour || getJourIndex(jour) + 1 }}</span>
+                <span class="jour-title">{{ jour.titre || 'Jour ' + (jour.jour || getJourIndex(jour) + 1) }}</span>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let exercice of getAllExercices()" class="exercice-row">
+            <td class="exercice-info">
+              <div class="exercice-name">{{ exercice.nom }}</div>
+              <div class="exercice-muscle">{{ exercice.muscle_cible }}</div>
+              <div class="exercice-description" *ngIf="exercice.description">
+                {{ exercice.description }}
+              </div>
+            </td>
+            <td *ngFor="let jour of selectedProgramme.jours" class="exercice-details">
+              <div *ngIf="getExerciceForJour(jour, exercice)" class="exercice-data">
+                <div class="sets-reps">
+                  <span class="sets">{{ getExerciceForJour(jour, exercice).sets }} séries</span>
+                  <span class="reps">{{ getExerciceForJour(jour, exercice).repetitions }} reps</span>
+                </div>
+                <div class="weight-rest" *ngIf="getExerciceForJour(jour, exercice).poids || getExerciceForJour(jour, exercice).temps_repos">
+                  <span class="weight" *ngIf="getExerciceForJour(jour, exercice).poids">
+                    {{ getExerciceForJour(jour, exercice).poids }}kg
+                  </span>
+                  <span class="rest" *ngIf="getExerciceForJour(jour, exercice).temps_repos">
+                    {{ getExerciceForJour(jour, exercice).temps_repos }}s repos
+                  </span>
+                </div>
+              </div>
+              <div *ngIf="!getExerciceForJour(jour, exercice)" class="no-exercice">
+                <span>-</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Message si aucun exercice -->
+    <div *ngIf="!selectedProgramme.jours || selectedProgramme.jours.length === 0 || getAllExercices().length === 0" class="no-content">
+      <i class="fas fa-calendar-times"></i>
+      <h3>Aucun exercice programmé</h3>
+      <p>Ce programme ne contient pas encore d'exercices.</p>
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Chargement...</p>
+  </div>
+
+  <!-- Error state -->
+  <div *ngIf="error" class="error-state">
+    <i class="fas fa-exclamation-triangle"></i>
+    <h3>Erreur</h3>
+    <p>{{ error }}</p>
+  </div>
+</div>

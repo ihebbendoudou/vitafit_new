@@ -1,0 +1,667 @@
+.reminder-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.header h2 {
+  color: #2c3e50;
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.header h2 i {
+  margin-right: 15px;
+  color: #f39c12;
+}
+
+.subtitle {
+  color: #6c757d;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+/* Messages */
+.messages {
+  margin-bottom: 20px;
+}
+
+.alert {
+  padding: 15px 20px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
+.alert-error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.alert-success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+/* Formulaire d'ajout */
+.add-reminder-card {
+  background: white;
+  border-radius: 15px;
+  padding: 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+}
+
+.add-reminder-card h3 {
+  margin: 0 0 25px 0;
+  color: #495057;
+  font-size: 1.4rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.add-reminder-card h3 i {
+  color: #28a745;
+}
+
+.reminder-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-row {
+  display: flex;
+  gap: 20px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.input-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #495057;
+}
+
+.form-input,
+.form-select {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: #f39c12;
+  box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.1);
+}
+
+/* Checkbox personnalisé */
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  min-width: auto;
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  padding: 15px 20px;
+  border-radius: 12px;
+  border: 2px solid #e9ecef;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.checkbox-group:hover {
+  border-color: #f39c12;
+  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.15);
+  transform: translateY(-1px);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0;
+  font-size: 1.05rem;
+  width: 100%;
+}
+
+.checkbox-input {
+  display: none;
+}
+
+.checkbox-custom {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #dee2e6;
+  border-radius: 8px;
+  position: relative;
+  transition: all 0.3s ease;
+  background: #ffffff;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.checkbox-custom:hover {
+  border-color: #f39c12;
+  box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.1);
+}
+
+.checkbox-input:checked + .checkbox-custom {
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  border-color: #f39c12;
+  box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.2);
+}
+
+.checkbox-input:checked + .checkbox-custom::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.checkbox-label:hover .checkbox-custom {
+  border-color: #f39c12;
+}
+
+.checkbox-input:checked + .checkbox-custom:hover {
+  background: linear-gradient(135deg, #e67e22, #d35400);
+}
+
+.add-btn {
+  padding: 15px 30px;
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  align-self: flex-start;
+}
+
+.add-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+}
+
+.add-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Section des rappels */
+.reminders-section {
+  margin-bottom: 30px;
+}
+
+.section-title {
+  color: #2c3e50;
+  margin: 0 0 25px 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 15px;
+  border-bottom: 3px solid #f39c12;
+}
+
+.section-title i {
+  color: #f39c12;
+}
+
+/* États de chargement */
+.loading-state {
+  text-align: center;
+  padding: 50px;
+}
+
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #f39c12;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.no-reminders {
+  text-align: center;
+  padding: 60px 20px;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-radius: 15px;
+  border: 2px dashed #dee2e6;
+}
+
+.no-reminders i {
+  font-size: 4rem;
+  color: #6c757d;
+  margin-bottom: 20px;
+}
+
+.no-reminders h4 {
+  color: #495057;
+  margin-bottom: 10px;
+}
+
+.no-reminders p {
+  color: #6c757d;
+  font-size: 1.1rem;
+}
+
+/* Grille des rappels */
+.reminders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 25px;
+}
+
+.reminder-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 249, 250, 0.95));
+  border-radius: 15px;
+  padding: 25px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.reminder-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.reminder-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+/* Styles pour les notifications push */
+.notification-status {
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  border: 2px solid #e9ecef;
+  border-radius: 15px;
+  padding: 20px;
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.notification-status:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.notification-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.notification-icon {
+  font-size: 2rem;
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.notification-text {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.notification-text strong {
+  color: #2c3e50;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.status-granted {
+  color: #28a745;
+  font-weight: 700;
+  font-size: 1rem;
+  background: #d4edda;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid #c3e6cb;
+}
+
+.status-denied {
+  color: #dc3545;
+  font-weight: 700;
+  font-size: 1rem;
+  background: #f8d7da;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid #f5c6cb;
+}
+
+.status-default {
+  color: #ffc107;
+  font-weight: 700;
+  font-size: 1rem;
+  background: #fff3cd;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid #ffeaa7;
+}
+
+.notification-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-notification {
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(243, 156, 18, 0.3);
+  min-width: 140px;
+}
+
+.btn-notification:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4);
+  background: linear-gradient(135deg, #e67e22, #d35400);
+}
+
+.btn-test {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  box-shadow: 0 2px 10px rgba(40, 167, 69, 0.3);
+}
+
+.btn-test:hover {
+  background: linear-gradient(135deg, #20c997, #17a2b8);
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+}
+
+.notification-warning {
+  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+  color: #856404;
+  padding: 15px 20px;
+  border-radius: 10px;
+  margin-top: 20px;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+  border: 2px solid #ffeaa7;
+  box-shadow: 0 2px 10px rgba(255, 193, 7, 0.2);
+}
+
+.day-badge {
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.reminder-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.toggle-btn,
+.delete-btn {
+  width: 35px;
+  height: 35px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.toggle-btn {
+  background: #6c757d;
+  color: white;
+}
+
+.toggle-btn.active {
+  background: #28a745;
+}
+
+.toggle-btn:hover {
+  transform: scale(1.1);
+}
+
+.delete-btn {
+  background: #dc3545;
+  color: white;
+}
+
+.delete-btn:hover {
+  background: #c82333;
+  transform: scale(1.1);
+}
+
+.reminder-body {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.reminder-title {
+  color: #2c3e50;
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.reminder-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #495057;
+  font-size: 0.95rem;
+}
+
+.detail-item i {
+  color: #f39c12;
+  width: 16px;
+  text-align: center;
+}
+
+.reminder-status {
+  margin-top: 10px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background: rgba(40, 167, 69, 0.1);
+  color: #28a745;
+}
+
+.status-badge.inactive {
+  background: rgba(108, 117, 125, 0.1);
+  color: #6c757d;
+}
+
+/* Section d'informations */
+.info-section {
+  margin-top: 40px;
+}
+
+.info-card {
+  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+  border-radius: 15px;
+  padding: 25px;
+  border: 1px solid #bbdefb;
+}
+
+.info-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.info-header i {
+  color: #1976d2;
+  font-size: 1.2rem;
+}
+
+.info-header h4 {
+  color: #1565c0;
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.info-content ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #1565c0;
+}
+
+.info-content li {
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.info-content strong {
+  color: #0d47a1;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .reminder-container {
+    padding: 15px;
+  }
+
+  .reminders-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .header h2 {
+    font-size: 2rem;
+  }
+
+  .add-reminder-card {
+    padding: 20px;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .input-group {
+    min-width: auto;
+  }
+
+  .reminder-card {
+    padding: 20px;
+  }
+
+  .reminder-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+  }
+
+  .reminder-actions {
+    align-self: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .header h2 {
+    font-size: 1.8rem;
+  }
+
+  .add-reminder-card {
+    padding: 15px;
+  }
+
+  .reminder-card {
+    padding: 15px;
+  }
+
+  .day-badge {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+}

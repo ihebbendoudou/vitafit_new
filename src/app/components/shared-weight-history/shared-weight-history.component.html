@@ -1,0 +1,189 @@
+<div class="shared-weight-history-container">
+  <!-- Header -->
+  <div class="header">
+    <h2>
+      <i class="fas fa-share-alt"></i>
+      Historique de Poids Partagé
+    </h2>
+    <p class="subtitle" *ngIf="userInfo">
+      Historique de {{ userInfo.nom }} {{ userInfo.prenom }}
+    </p>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading">
+    <i class="fas fa-spinner fa-spin"></i>
+    <p>Chargement de l'historique...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="error">
+    <i class="fas fa-exclamation-triangle"></i>
+    <p>{{ error }}</p>
+  </div>
+
+  <!-- Content -->
+  <div *ngIf="!loading && !error">
+    <!-- User Info -->
+    <div class="user-info" *ngIf="userInfo">
+      <div class="info-card">
+        <h3>
+          <i class="fas fa-user"></i>
+          Informations du Patient
+        </h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="label">Nom:</span>
+            <span class="value">{{ userInfo.nom }} {{ userInfo.prenom }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Email:</span>
+            <span class="value">{{ userInfo.email }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Âge:</span>
+            <span class="value">{{ userInfo.age }} ans</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Sexe:</span>
+            <span class="value">{{ userInfo.sexe }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Weight History -->
+    <div class="weight-history-section">
+      <h3>
+        <i class="fas fa-chart-line"></i>
+        Historique de Poids ({{ weightHistory.length }} entrées)
+      </h3>
+
+      <div *ngIf="weightHistory.length === 0" class="no-data">
+        <i class="fas fa-inbox"></i>
+        <p>Aucun historique de poids disponible.</p>
+      </div>
+
+      <div class="weight-list" *ngIf="weightHistory.length > 0">
+        <div 
+          *ngFor="let weight of weightHistory; let i = index" 
+          class="weight-item"
+        >
+          <div class="weight-info">
+            <div class="weight-value">
+              <span class="value">{{ weight.poids }} kg</span>
+              <div 
+                *ngIf="i < weightHistory.length - 1" 
+                class="trend"
+                [ngClass]="getTendencyClass(weight.poids, weightHistory[i + 1].poids)"
+              >
+                <i [class]="getTendencyIcon(weight.poids, weightHistory[i + 1].poids)"></i>
+                <span>{{ getTendencyText(weight.poids, weightHistory[i + 1].poids) }}</span>
+              </div>
+            </div>
+            <div class="weight-date">
+              <i class="fas fa-calendar-alt"></i>
+              {{ weight.date_enregistrement | date:'dd/MM/yyyy à HH:mm' }}
+            </div>
+          </div>
+
+          <!-- Photos -->
+          <div class="weight-photos" *ngIf="hasPhotos(weight)">
+            <div class="photos-header">
+              <i class="fas fa-camera"></i>
+              <span>{{ getPhotosCount(weight) }} photo(s)</span>
+            </div>
+            <div class="photos-thumbnails">
+              <img 
+                *ngFor="let photo of weight.photos?.slice(0, 3); let photoIndex = index" 
+                [src]="getPhotoUrl(photo)" 
+                [alt]="'Photo ' + (photoIndex + 1)"
+                class="thumbnail"
+                (click)="openPhotoModal(weight.photos || [], photoIndex, weight)"
+              >
+              <div 
+                *ngIf="getPhotosCount(weight) > 3" 
+                class="more-photos"
+                (click)="openPhotoModal(weight.photos || [], 0, weight)"
+              >
+                +{{ getPhotosCount(weight) - 3 }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>
+      <i class="fas fa-shield-alt"></i>
+      Cet historique est partagé de manière sécurisée avec votre coach/médecin
+    </p>
+  </div>
+</div>
+
+<!-- Modale d'agrandissement des photos -->
+<div class="photo-modal" *ngIf="showPhotoModal" (click)="closePhotoModal()">
+  <div class="photo-modal-content" (click)="$event.stopPropagation()">
+    <div class="photo-modal-header">
+      <div class="photo-modal-title">
+        <h3>
+          <i class="fas fa-images"></i>
+          Photo {{ currentPhotoIndex + 1 }} sur {{ currentPhotos.length }}
+        </h3>
+        <div class="weight-info-modal" *ngIf="currentWeightData">
+          <div class="weight-value-modal">
+            <i class="fas fa-weight"></i>
+            {{ currentWeightData.poids }} kg
+          </div>
+          <div class="weight-date-modal">
+            <i class="fas fa-calendar-alt"></i>
+            {{ currentWeightData.date_pesee || currentWeightData.date_enregistrement | date:'dd/MM/yyyy à HH:mm' }}
+          </div>
+        </div>
+      </div>
+      <button class="close-btn" (click)="closePhotoModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="photo-modal-body">
+      <button 
+        class="nav-btn prev-btn" 
+        *ngIf="currentPhotoIndex > 0"
+        (click)="previousPhoto()"
+      >
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      
+      <div class="photo-container">
+        <img 
+          [src]="getPhotoUrl(getCurrentPhoto())" 
+          [alt]="'Photo ' + (currentPhotoIndex + 1)"
+          class="enlarged-photo"
+        >
+      </div>
+      
+      <button 
+        class="nav-btn next-btn" 
+        *ngIf="currentPhotoIndex < currentPhotos.length - 1"
+        (click)="nextPhoto()"
+      >
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+    
+    <div class="photo-modal-footer" *ngIf="currentPhotos.length > 1">
+      <div class="photo-indicators">
+        <span 
+          *ngFor="let photo of currentPhotos; let i = index"
+          class="indicator"
+          [class.active]="i === currentPhotoIndex"
+          (click)="currentPhotoIndex = i"
+        ></span>
+      </div>
+    </div>
+  </div>
+</div>

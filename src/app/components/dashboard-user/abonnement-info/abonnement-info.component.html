@@ -1,0 +1,169 @@
+<div class="abonnement-info-container">
+  <!-- Message d'erreur -->
+  <div class="alert alert-danger" *ngIf="error">
+    <i class="fas fa-exclamation-triangle"></i>
+    {{ error }}
+  </div>
+
+  <!-- Loading -->
+  <div class="loading" *ngIf="loading">
+    <i class="fas fa-spinner fa-spin"></i>
+    Chargement des informations d'abonnement...
+  </div>
+
+  <!-- Abonnement actuel -->
+  <div class="current-subscription" *ngIf="!loading && !error">
+    <div class="subscription-card" *ngIf="currentAbonnement; else noCurrentSubscription">
+      <div class="card-header">
+        <h3>
+          <i class="fas fa-crown"></i>
+          Abonnement Actuel
+        </h3>
+        <div class="status-badge" [ngClass]="{
+          'active': getDaysRemaining(currentAbonnement.date_fin) > 7,
+          'warning': isAbonnementExpiringSoon(currentAbonnement.date_fin),
+          'expired': getDaysRemaining(currentAbonnement.date_fin) <= 0
+        }">
+          <span *ngIf="getDaysRemaining(currentAbonnement.date_fin) > 0">
+            {{ getDaysRemaining(currentAbonnement.date_fin) }} jour(s) restant(s)
+          </span>
+          <span *ngIf="getDaysRemaining(currentAbonnement.date_fin) <= 0">
+            Expiré
+          </span>
+        </div>
+      </div>
+      
+      <div class="card-body">
+        <div class="subscription-details">
+          <div class="detail-row">
+            <div class="detail-item">
+              <i class="fas fa-tag"></i>
+              <div class="detail-content">
+                <span class="label">Type d'abonnement</span>
+                <span class="value">{{ currentAbonnement.type_abonnement }}</span>
+              </div>
+            </div>
+            
+            <div class="detail-item">
+              <i class="fas fa-money-bill-wave"></i>
+              <div class="detail-content">
+                <span class="label">Prix</span>
+                <span class="value">{{ currentAbonnement.prix }} DT</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="detail-row">
+            <div class="detail-item">
+              <i class="fas fa-calendar-alt"></i>
+              <div class="detail-content">
+                <span class="label">Date de début</span>
+                <span class="value">{{ formatDate(currentAbonnement.date_debut) }}</span>
+              </div>
+            </div>
+            
+            <div class="detail-item">
+              <i class="fas fa-calendar-times"></i>
+              <div class="detail-content">
+                <span class="label">Date de fin</span>
+                <span class="value">{{ formatDate(currentAbonnement.date_fin) }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="detail-row" *ngIf="currentAbonnement.nom_coach">
+            <div class="detail-item full-width">
+              <i class="fas fa-user-tie"></i>
+              <div class="detail-content">
+                <span class="label">Coach assigné</span>
+                <span class="value">{{ currentAbonnement.nom_coach }} {{ currentAbonnement.prenom_coach }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="detail-row">
+            <div class="detail-item">
+              <i class="fas fa-credit-card"></i>
+              <div class="detail-content">
+                <span class="label">Mode de paiement</span>
+                <span class="value">{{ currentAbonnement.mode_paiement }}</span>
+              </div>
+            </div>
+            
+            <div class="detail-item">
+              <i class="fas fa-calendar-check"></i>
+              <div class="detail-content">
+                <span class="label">Date de paiement</span>
+                <span class="value">{{ formatDate(currentAbonnement.date_paiement) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aucun abonnement actuel -->
+    <ng-template #noCurrentSubscription>
+      <div class="no-subscription">
+        <div class="no-subscription-content">
+          <i class="fas fa-exclamation-circle"></i>
+          <h3>Aucun abonnement actuel</h3>
+          <p>Vous n'avez actuellement aucun abonnement actif. Contactez l'administration pour souscrire à un nouvel abonnement.</p>
+        </div>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- Historique des abonnements -->
+  <div class="subscription-history" *ngIf="!loading && !error && expiredAbonnements.length > 0">
+    <div class="history-header">
+      <h3>
+        <i class="fas fa-history"></i>
+        Historique des abonnements
+      </h3>
+      <button class="toggle-history-btn" (click)="toggleHistory()">
+        <i class="fas" [ngClass]="showHistory ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+        {{ showHistory ? 'Masquer' : 'Afficher' }} l'historique ({{ expiredAbonnements.length }})
+      </button>
+    </div>
+    
+    <div class="history-content" *ngIf="showHistory">
+      <div class="history-item" *ngFor="let abonnement of expiredAbonnements">
+        <div class="history-card">
+          <div class="history-header-info">
+            <div class="history-type">
+              <i class="fas fa-tag"></i>
+              {{ abonnement.type_abonnement }}
+            </div>
+            <div class="history-status expired">
+              <i class="fas fa-times-circle"></i>
+              Expiré
+            </div>
+          </div>
+          
+          <div class="history-details">
+            <div class="history-detail">
+              <i class="fas fa-calendar-alt"></i>
+              <span>{{ formatDate(abonnement.date_debut) }} - {{ formatDate(abonnement.date_fin) }}</span>
+            </div>
+            
+            <div class="history-detail">
+              <i class="fas fa-money-bill-wave"></i>
+              <span>{{ abonnement.prix }} DT</span>
+            </div>
+            
+            <div class="history-detail" *ngIf="abonnement.nom_coach">
+              <i class="fas fa-user-tie"></i>
+              <span>{{ abonnement.nom_coach }} {{ abonnement.prenom_coach }}</span>
+            </div>
+            
+            <div class="history-detail">
+              <i class="fas fa-credit-card"></i>
+              <span>{{ abonnement.mode_paiement }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

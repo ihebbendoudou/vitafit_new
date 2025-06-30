@@ -1,0 +1,498 @@
+<div class="product-detail-container">
+  <!-- Header -->
+  <app-navbar 
+    brandName="VitaFit"
+    currentPage="products"
+    [showCartIcon]="true"
+    [showAuthButtons]="true"
+    (cartClick)="toggleCartModal()"
+    (menuToggle)="onMenuToggle()">
+  </app-navbar>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Chargement du produit...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !isLoading" class="error-state">
+    <div class="container">
+      <div class="error-content">
+        <i class="fas fa-exclamation-triangle"></i>
+        <h2>Oops! Une erreur s'est produite</h2>
+        <p>{{ error }}</p>
+        <div class="error-actions">
+          <button class="btn btn-primary" (click)="goToHome()">
+            <i class="fas fa-arrow-left"></i>
+            Retour à l'accueil
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Product Content -->
+  <div *ngIf="product && !isLoading" class="product-content">
+    <div class="container">
+      <div class="product-layout">
+        <!-- Product Images Section -->
+        <div class="product-images">
+          <!-- Thumbnail Gallery -->
+          <div class="thumbnail-gallery">
+            <div 
+              *ngFor="let image of productImages; let i = index" 
+              class="thumbnail"
+              [class.active]="i === currentImageIndex"
+              (click)="goToImage(i)">
+              <img 
+                [src]="getImageUrl(image)" 
+                [alt]="product.nom + ' - Image ' + (i + 1)"
+                class="thumbnail-image"
+                (error)="onImageError($event)">
+            </div>
+          </div>
+
+          <!-- Main Image -->
+          <div class="main-image-container">
+            <img 
+              [src]="getImageUrl(productImages[currentImageIndex] || '')" 
+              [alt]="product.nom"
+              class="main-image"
+              (error)="onImageError($event)">
+            
+            <!-- Navigation Arrows -->
+            <div class="image-nav" *ngIf="productImages.length > 1">
+              <button class="nav-btn prev-btn" (click)="previousImage()">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <button class="nav-btn next-btn" (click)="nextImage()">
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product Info Section -->
+        <div class="product-info">
+          <!-- Product Title -->
+          <h1 class="product-title">{{ product.nom }}</h1>
+          
+          <!-- Product Rating -->
+          <div class="product-rating">
+            <div class="stars">
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="far fa-star"></i>
+            </div>
+            <span class="rating-count">3,345</span>
+          </div>
+
+          <!-- Product Price -->
+          <div class="product-price">
+            <span class="price">{{ product.prix }}dt</span>
+          </div>
+
+          <!-- Product Colors -->
+       
+
+          <!-- Quantity Selector -->
+          <div class="quantity-section">
+            <h3>Quantité</h3>
+            <div class="quantity-controls">
+              <button class="quantity-btn" (click)="decreaseQuantity()" [disabled]="quantity <= 1">
+                <i class="fas fa-minus"></i>
+              </button>
+              <span class="quantity-display">{{ quantity }}</span>
+              <button class="quantity-btn" (click)="increaseQuantity()" [disabled]="quantity >= product.quantite">
+                <i class="fas fa-plus"></i>
+              </button>
+            </div>
+            <p class="stock-info">{{ product.quantite }} en stock</p>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="product-actions">
+            <button class="btn btn-add-cart" (click)="addToCart()">
+              Add To Cart
+            </button>
+            <button class="btn btn-wishlist" (click)="addToWishlist()">
+              <i class="fas fa-heart"></i>
+            </button>
+          </div>
+
+          <button class="btn btn-buy-now" (click)="buyNow()">
+            Buy Now
+          </button>
+        </div>
+      </div>
+
+      <!-- Product Description Section -->
+      <div class="product-description-section">
+        <div class="description-tabs">
+          <div class="tab active">Description</div>
+
+        </div>
+        
+        <div class="description-content">
+          <div class="description-text">
+            <p>{{ product.description }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Related Products Section -->
+      <div class="related-products-section">
+        <h2 class="section-title">Produits de la même catégorie</h2>
+        
+        <!-- Loading State for Related Products -->
+        <div *ngIf="isLoadingRelated" class="related-loading">
+          <div class="spinner"></div>
+          <p>Chargement des produits similaires...</p>
+        </div>
+        
+        <!-- Related Products Grid -->
+        <div *ngIf="!isLoadingRelated && relatedProducts.length > 0" class="related-products-grid">
+          <div 
+            *ngFor="let relatedProduct of relatedProducts" 
+            class="related-product-card"
+            (click)="navigateToProduct(relatedProduct.id)">
+            <div class="related-product-image">
+              <img 
+                [src]="getImageUrl(relatedProduct.images?.[0] || '')" 
+                [alt]="relatedProduct.nom"
+                (error)="onImageError($event)">
+            </div>
+            <div class="related-product-info">
+              <h4 class="related-product-title">{{ relatedProduct.nom }}</h4>
+              <p class="related-product-price">{{ relatedProduct.prix }}dt</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- No Related Products -->
+        <div *ngIf="!isLoadingRelated && relatedProducts.length === 0" class="no-related-products">
+          <p>Aucun produit similaire trouvé dans cette catégorie.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Cart Modal -->
+<div class="cart-modal-overlay" *ngIf="showCartModal" (click)="toggleCartModal()">
+  <div class="cart-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>
+        <i class="fas fa-shopping-cart"></i>
+        Mon Panier ({{ cartItemCount }} article{{ cartItemCount > 1 ? 's' : '' }})
+      </h2>
+      <button class="close-btn" (click)="toggleCartModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="modal-content">
+      <div class="cart-items" *ngIf="cartItems.length > 0; else emptyCart">
+        <div class="cart-item" *ngFor="let item of cartItems">
+          <div class="item-image">
+            <img [src]="getProductImageUrl(item.produit)" [alt]="item.produit.nom">
+          </div>
+          <div class="item-info">
+            <h4>{{ item.produit.nom }}</h4>
+            <p class="item-category">{{ getCategoryName(item.produit.categorie_id) }}</p>
+            <div class="item-controls">
+              <div class="quantity-controls">
+                <button (click)="updateCartQuantity(item.produit.id, item.quantity - 1)">
+                  <i class="fas fa-minus"></i>
+                </button>
+                <span>{{ item.quantity }}</span>
+                <button (click)="updateCartQuantity(item.produit.id, item.quantity + 1)">
+                  <i class="fas fa-plus"></i>
+                </button>
+              </div>
+              <button class="remove-btn" (click)="removeFromCart(item.produit.id)">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+          <div class="item-price">
+            <span class="unit-price">{{ item.produit.prix }}dt</span>
+            <span class="total-price">{{ (item.produit.prix * item.quantity).toFixed(2) }}dt</span>
+          </div>
+        </div>
+      </div>
+      
+      <ng-template #emptyCart>
+        <div class="empty-cart">
+          <i class="fas fa-shopping-cart"></i>
+          <h3>Votre panier est vide</h3>
+          <p>Ajoutez des produits pour commencer vos achats</p>
+        </div>
+      </ng-template>
+    </div>
+    
+    <div class="modal-footer" *ngIf="cartItems.length > 0">
+      <div class="cart-total">
+        <span class="total-label">Total:</span>
+        <span class="total-amount">{{ getCartTotal().toFixed(2) }}dt</span>
+      </div>
+      <div class="cart-actions">
+        <button class="btn btn-secondary" (click)="clearCart()">
+          <i class="fas fa-trash"></i>
+          Vider le panier
+        </button>
+        <button class="btn btn-primary" (click)="openCheckoutModal()">
+           <i class="fas fa-credit-card"></i>
+           Procéder au paiement
+         </button>
+       </div>
+     </div>
+   </div>
+ </div>
+
+<!-- Checkout Modal -->
+<div class="checkout-modal-overlay" *ngIf="showCheckoutModal" (click)="closeCheckoutModal()">
+  <div class="checkout-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>
+        <i class="fas fa-shopping-bag"></i>
+        Finaliser votre commande
+      </h2>
+      <button class="close-btn" (click)="closeCheckoutModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="modal-content">
+      <!-- Order Summary -->
+      <div class="order-summary">
+        <h3>Résumé de votre commande</h3>
+        <div class="summary-items">
+          <div class="summary-item" *ngFor="let item of cartItems">
+            <span class="item-name">{{ item.produit.nom }} x{{ item.quantity }}</span>
+            <span class="item-total">{{ (item.produit.prix * item.quantity).toFixed(2) }}dt</span>
+          
+          </div>
+        </div>
+        <div class="summary-items">
+          <div class="summary-item">
+            <span class="item-name">Frais de livraison</span>
+            <span class="item-total">8 dt</span>
+          
+          </div>
+        </div>
+        <div class="summary-total">
+          
+          <strong>Total: {{ getCartTotal().toFixed(2) }} dt </strong>
+        </div>
+      </div>
+
+      <!-- Customer Information Form -->
+      <form class="checkout-form" (ngSubmit)="submitOrder()" #orderForm="ngForm">
+        <h3>Informations de livraison</h3>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="nom">Nom *</label>
+            <input 
+              type="text" 
+              id="nom" 
+              name="nom" 
+              [(ngModel)]="orderData.nom" 
+              required 
+              class="form-control"
+              placeholder="Votre nom">
+          </div>
+          <div class="form-group">
+            <label for="prenom">Prénom *</label>
+            <input 
+              type="text" 
+              id="prenom" 
+              name="prenom" 
+              [(ngModel)]="orderData.prenom" 
+              required 
+              class="form-control"
+              placeholder="Votre prénom">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="email">Email *</label>
+            <input 
+              type="email" 
+              id="email" 
+              name="email" 
+              [(ngModel)]="orderData.email" 
+              required 
+              class="form-control"
+              placeholder="votre@email.com">
+          </div>
+          <div class="form-group">
+            <label for="telephone">Téléphone</label>
+            <input 
+              type="tel" 
+              id="telephone" 
+              name="telephone" 
+              [(ngModel)]="orderData.telephone" 
+              class="form-control"
+              placeholder="Votre numéro de téléphone">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="gouvernorat">Gouvernorat</label>
+          <select 
+            id="gouvernorat" 
+            name="gouvernorat" 
+            [(ngModel)]="orderData.gouvernorat" 
+            required 
+            class="form-control"
+            (change)="onGouvernoratChange()">
+            <option value="">Sélectionnez un gouvernorat</option>
+            <option value="tunis">Tunis</option>
+            <option value="ariana">Ariana</option>
+            <option value="ben_arous">Ben Arous</option>
+            <option value="manouba">Manouba</option>
+            <option value="nabeul">Nabeul</option>
+            <option value="zaghouan">Zaghouan</option>
+            <option value="bizerte">Bizerte</option>
+            <option value="beja">Béja</option>
+            <option value="jendouba">Jendouba</option>
+            <option value="kef">Le Kef</option>
+            <option value="siliana">Siliana</option>
+            <option value="kairouan">Kairouan</option>
+            <option value="kasserine">Kasserine</option>
+            <option value="sidi_bouzid">Sidi Bouzid</option>
+            <option value="sousse">Sousse</option>
+            <option value="monastir">Monastir</option>
+            <option value="mahdia">Mahdia</option>
+            <option value="sfax">Sfax</option>
+            <option value="gafsa">Gafsa</option>
+            <option value="tozeur">Tozeur</option>
+            <option value="kebili">Kébili</option>
+            <option value="gabes">Gabès</option>
+            <option value="medenine">Médenine</option>
+            <option value="tataouine">Tataouine</option>
+          </select>
+        </div>
+
+        <div class="form-group" *ngIf="orderData.gouvernorat">
+          <label for="ville">Ville/Délégation</label>
+          <select 
+            id="ville" 
+            name="ville" 
+            [(ngModel)]="orderData.ville" 
+            required 
+            class="form-control">
+            <option value="">Sélectionnez une ville</option>
+            <option *ngFor="let ville of getVillesByGouvernorat()" [value]="ville.value">{{ville.label}}</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="adresse_detaillee">Adresse détaillée</label>
+          <textarea 
+            id="adresse_detaillee" 
+            name="adresse_detaillee" 
+            [(ngModel)]="orderData.adresse_livraison" 
+            required 
+            class="form-control"
+            rows="3"
+            placeholder="Rue, numéro, étage, code postal..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="mode_paiement">Mode de paiement</label>
+          <select 
+            id="mode_paiement" 
+            name="mode_paiement" 
+            [(ngModel)]="orderData.mode_paiement" 
+            class="form-control">
+            <option value="especes" selected>Espèces à la livraison</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="notes">Notes (optionnel)</label>
+          <textarea 
+            id="notes" 
+            name="notes" 
+            [(ngModel)]="orderData.notes" 
+            class="form-control"
+            rows="2"
+            placeholder="Instructions spéciales pour la livraison..."></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="closeCheckoutModal()">
+            <i class="fas fa-arrow-left"></i>
+            Retour au panier
+          </button>
+          <button 
+            type="submit" 
+            class="btn btn-primary" 
+            [disabled]="!orderForm.valid || isSubmittingOrder">
+            <i class="fas fa-check" *ngIf="!isSubmittingOrder"></i>
+            <i class="fas fa-spinner fa-spin" *ngIf="isSubmittingOrder"></i>
+            {{ isSubmittingOrder ? 'Traitement...' : 'Confirmer la commande' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Order Confirmation Modal -->
+<div class="confirmation-modal-overlay" *ngIf="showConfirmationModal" (click)="closeConfirmationModal()">
+  <div class="confirmation-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>
+        <i class="fas fa-check-circle text-success"></i>
+        Commande confirmée !
+      </h2>
+      <button class="close-btn" (click)="closeConfirmationModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="modal-content">
+      <div class="confirmation-content">
+        <div class="success-icon">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <h3>Merci pour votre commande !</h3>
+        <p>Votre commande a été enregistrée avec succès.</p>
+        <div class="order-reference" *ngIf="orderReference">
+          <strong>Référence de commande: {{ orderReference }}</strong>
+        </div>
+        <p class="confirmation-text">
+          Vous recevrez un email de confirmation à l'adresse <strong>{{ orderData.email }}</strong>
+          avec tous les détails de votre commande.
+        </p>
+        <div class="next-steps">
+          <h4>Prochaines étapes :</h4>
+          <ul>
+            <li>Nous préparons votre commande</li>
+            <li>Vous recevrez un email de suivi</li>
+            <li>Livraison sous 2-5 jours ouvrés</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="confirmation-actions">
+        <button class="btn btn-secondary" (click)="goToHome()">
+          <i class="fas fa-home"></i>
+          Retour à l'accueil
+        </button>
+        <button class="btn btn-primary" (click)="continueShopping()">
+          <i class="fas fa-shopping-cart"></i>
+          Continuer mes achats
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

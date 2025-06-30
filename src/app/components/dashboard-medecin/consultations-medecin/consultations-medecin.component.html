@@ -1,0 +1,235 @@
+<div class="consultations-medecin-container">
+  <!-- En-tête avec statistiques -->
+  <div class="header-section">
+    <h2>Mes Consultations</h2>
+    <div class="stats-cards">
+      <div class="stat-card total">
+        <div class="stat-number">{{ totalConsultations }}</div>
+        <div class="stat-label">Total</div>
+      </div>
+      <div class="stat-card pending">
+        <div class="stat-number">{{ consultationsEnAttente }}</div>
+        <div class="stat-label">En attente</div>
+      </div>
+      <div class="stat-card approved">
+        <div class="stat-number">{{ consultationsValidees }}</div>
+        <div class="stat-label">Validées</div>
+      </div>
+      <div class="stat-card rejected">
+        <div class="stat-number">{{ consultationsRefusees }}</div>
+        <div class="stat-label">Refusées</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtres -->
+  <div class="filters-section">
+    <div class="search-box">
+      <input 
+        type="text" 
+        [(ngModel)]="searchTerm" 
+        (input)="applyFilters()" 
+        placeholder="Rechercher par nom, email ou objet..."
+        class="search-input"
+      >
+    </div>
+    <div class="status-filter">
+      <select [(ngModel)]="statusFilter" (change)="applyFilters()" class="status-select">
+        <option value="">Tous les statuts</option>
+        <option value="en_attente_medecin">En attente de validation</option>
+        <option value="valide">Validées</option>
+        <option value="refuse">Refusées</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Tableau des consultations -->
+  <div class="table-section">
+    <div *ngIf="loading" class="loading-spinner">
+      <div class="spinner"></div>
+      <p>Chargement des consultations...</p>
+    </div>
+
+    <div *ngIf="!loading && paginatedConsultations.length === 0" class="no-data">
+      <p>Aucune consultation trouvée.</p>
+    </div>
+
+    <table *ngIf="!loading && paginatedConsultations.length > 0" class="consultations-table">
+      <thead>
+        <tr>
+          <th>Patient</th>
+          <th>Type</th>
+          <th>Objet</th>
+          <th>Date de demande</th>
+          <th>Statut</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let consultation of paginatedConsultations">
+          <td>
+            <div class="patient-info">
+              <div class="patient-name">{{ getPatientName(consultation) }}</div>
+              <div class="patient-email">{{ getPatientEmail(consultation) }}</div>
+            </div>
+          </td>
+          <td>
+            <span class="patient-type" [class]="consultation.type">
+              {{ getPatientType(consultation) }}
+            </span>
+          </td>
+          <td>
+            <div class="consultation-objet">
+              {{ consultation.objet || 'Non spécifié' }}
+            </div>
+          </td>
+          <td>
+            <div class="date-info">
+              {{ formatDate(consultation.date_demande) }}
+            </div>
+          </td>
+          <td>
+            <span class="status-badge" [class]="getStatusClass(consultation.statut)">
+              {{ getStatusLabel(consultation.statut) }}
+            </span>
+          </td>
+          <td>
+            <div class="actions">
+              <button 
+                *ngIf="consultation.statut === 'en_attente_medecin'"
+                (click)="openApprovalModal(consultation)"
+                class="btn btn-approve"
+                title="Approuver"
+              >
+                ✓ Valider
+              </button>
+              <button 
+                *ngIf="consultation.statut === 'en_attente_medecin'"
+                (click)="openRejectionModal(consultation)"
+                class="btn btn-reject"
+                title="Refuser"
+              >
+                ✗ Refuser
+              </button>
+              <button 
+                class="btn btn-view"
+                title="Voir les détails"
+              >
+                👁 Détails
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div *ngIf="totalPages > 1" class="pagination">
+    <button 
+      (click)="changePage(currentPage - 1)" 
+      [disabled]="currentPage === 1"
+      class="pagination-btn"
+    >
+      Précédent
+    </button>
+    
+    <span class="pagination-info">
+      Page {{ currentPage }} sur {{ totalPages }}
+    </span>
+    
+    <button 
+      (click)="changePage(currentPage + 1)" 
+      [disabled]="currentPage === totalPages"
+      class="pagination-btn"
+    >
+      Suivant
+    </button>
+  </div>
+</div>
+
+<!-- Modale d'approbation -->
+<div *ngIf="showApprovalModal" class="modal-overlay" (click)="closeModals()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Valider la consultation</h3>
+      <button (click)="closeModals()" class="close-btn">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="patient-summary">
+        <h4>Patient: {{ getPatientName(selectedConsultation!) }}</h4>
+        <p><strong>Objet:</strong> {{ selectedConsultation?.objet }}</p>
+      </div>
+      
+      <div class="form-group">
+        <label for="dateConsultation">Date de consultation proposée *</label>
+        <input 
+          type="datetime-local" 
+          id="dateConsultation"
+          [(ngModel)]="dateConsultation" 
+          class="form-input"
+          required
+        >
+      </div>
+      
+      <div class="form-group">
+        <label for="commentaireMedecin">Commentaire (optionnel)</label>
+        <textarea 
+          id="commentaireMedecin"
+          [(ngModel)]="commentaireMedecin" 
+          class="form-textarea"
+          rows="4"
+          placeholder="Ajoutez un commentaire ou des instructions..."
+        ></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button (click)="closeModals()" class="btn btn-cancel">Annuler</button>
+      <button 
+        (click)="approveConsultation()" 
+        [disabled]="!dateConsultation"
+        class="btn btn-approve"
+      >
+        Valider la consultation
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modale de refus -->
+<div *ngIf="showRejectionModal" class="modal-overlay" (click)="closeModals()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Refuser la consultation</h3>
+      <button (click)="closeModals()" class="close-btn">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="patient-summary">
+        <h4>Patient: {{ getPatientName(selectedConsultation!) }}</h4>
+        <p><strong>Objet:</strong> {{ selectedConsultation?.objet }}</p>
+      </div>
+      
+      <div class="form-group">
+        <label for="commentaireRefus">Motif du refus *</label>
+        <textarea 
+          id="commentaireRefus"
+          [(ngModel)]="commentaireMedecin" 
+          class="form-textarea"
+          rows="4"
+          placeholder="Veuillez expliquer le motif du refus..."
+          required
+        ></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button (click)="closeModals()" class="btn btn-cancel">Annuler</button>
+      <button 
+        (click)="rejectConsultation()" 
+        [disabled]="!commentaireMedecin.trim()"
+        class="btn btn-reject"
+      >
+        Refuser la consultation
+      </button>
+    </div>
+  </div>
+</div>

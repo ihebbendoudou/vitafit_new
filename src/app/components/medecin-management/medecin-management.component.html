@@ -1,0 +1,157 @@
+<div class="medecin-management-container">
+  <div class="header">
+    <h2>Gestion des Médecins</h2>
+    <div class="actions">
+      <div class="search-box">
+        <input type="text" [(ngModel)]="searchQuery" placeholder="Rechercher un médecin..." (input)="searchMedecins()">
+        <i class="fas fa-search"></i>
+      </div>
+      <button class="btn-add" (click)="openAddForm()">
+        <i class="fas fa-plus"></i> Ajouter un médecin
+      </button>
+    </div>
+  </div>
+
+  <div class="alert alert-success" *ngIf="successMessage">
+    {{ successMessage }}
+    <button class="close-btn" (click)="successMessage = ''">&times;</button>
+  </div>
+  <div class="alert alert-error" *ngIf="errorMessage">
+    {{ errorMessage }}
+    <button class="close-btn" (click)="errorMessage = ''">&times;</button>
+  </div>
+
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Spécialité</th>
+          <th>Email</th>
+          <th>Téléphone</th>
+          <th>Adresse</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngIf="loading">
+          <td colspan="6" class="text-center">
+            <div class="loader"></div>
+            Chargement des données...
+          </td>
+        </tr>
+        <tr *ngIf="!loading && filteredMedecins.length === 0">
+          <td colspan="6" class="text-center">
+            Aucun médecin trouvé.
+          </td>
+        </tr>
+        <tr *ngFor="let medecin of filteredMedecins">
+          <td>{{ medecin.nom }}</td>
+          <td>{{ medecin.specialite }}</td>
+          <td>{{ medecin.email }}</td>
+          <td>{{ medecin.telephone }}</td>
+          <td>{{ medecin.adresse }}</td>
+          <td class="actions-cell">
+            <button class="btn-edit" (click)="openEditForm(medecin)">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn-delete" (click)="deleteMedecin(medecin.id!)">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="modal" *ngIf="showForm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>{{ isEditing ? 'Modifier le médecin' : 'Ajouter un nouveau médecin' }}</h3>
+        <button class="close-btn" (click)="closeForm()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="medecinForm" (ngSubmit)="submitForm()">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="nom">Nom complet *</label>
+              <input type="text" id="nom" formControlName="nom" placeholder="Nom complet du médecin">
+              <div class="error-message" *ngIf="medecinForm.get('nom')?.invalid && medecinForm.get('nom')?.touched">
+                Le nom est requis
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="specialite">Spécialité *</label>
+              <input type="text" id="specialite" formControlName="specialite" placeholder="Spécialité du médecin">
+              <div class="error-message" *ngIf="medecinForm.get('specialite')?.invalid && medecinForm.get('specialite')?.touched">
+                La spécialité est requise
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="email">Email *</label>
+              <input type="email" id="email" formControlName="email" placeholder="Email du médecin">
+              <div class="error-message" *ngIf="medecinForm.get('email')?.invalid && medecinForm.get('email')?.touched">
+                Un email valide est requis
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="telephone">Téléphone *</label>
+              <input type="tel" id="telephone" formControlName="telephone" placeholder="Numéro de téléphone">
+              <div class="error-message" *ngIf="medecinForm.get('telephone')?.invalid && medecinForm.get('telephone')?.touched">
+                Le numéro de téléphone est requis
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="adresse">Adresse *</label>
+              <input type="text" id="adresse" formControlName="adresse" placeholder="Adresse du médecin">
+              <div class="error-message" *ngIf="medecinForm.get('adresse')?.invalid && medecinForm.get('adresse')?.touched">
+                L'adresse est requise
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row" *ngIf="!isEditing">
+            <div class="form-group">
+              <label for="password">Mot de passe *</label>
+              <input type="password" id="password" formControlName="password" placeholder="Mot de passe">
+              <div class="error-message" *ngIf="medecinForm.get('password')?.invalid && medecinForm.get('password')?.touched">
+                <span *ngIf="medecinForm.get('password')?.errors?.['required']">Le mot de passe est requis</span>
+                <span *ngIf="medecinForm.get('password')?.errors?.['minlength']">Le mot de passe doit contenir au moins 6 caractères</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row" *ngIf="isEditing">
+            <div class="form-group">
+              <label for="password">Mot de passe (laisser vide pour ne pas modifier)</label>
+              <input type="password" id="password" formControlName="password" placeholder="Nouveau mot de passe">
+              <div class="error-message" *ngIf="medecinForm.get('password')?.invalid && medecinForm.get('password')?.touched && medecinForm.get('password')?.value">
+                <span *ngIf="medecinForm.get('password')?.errors?.['minlength']">Le mot de passe doit contenir au moins 6 caractères</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-cancel" (click)="closeForm()">Annuler</button>
+            <button type="submit" class="btn-submit" [disabled]="medecinForm.invalid || loading">
+              <span *ngIf="!loading">{{ isEditing ? 'Mettre à jour' : 'Ajouter' }}</span>
+              <span *ngIf="loading">Traitement en cours...</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

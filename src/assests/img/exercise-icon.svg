@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="exerciseGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="90" fill="url(#exerciseGradient)" opacity="0.1"/>
+  
+  <!-- Dumbbell -->
+  <g transform="translate(100,100)">
+    <!-- Bar -->
+    <rect x="-40" y="-3" width="80" height="6" rx="3" fill="#4a5568"/>
+    
+    <!-- Left weight -->
+    <circle cx="-35" cy="0" r="12" fill="#2d3748"/>
+    <circle cx="-35" cy="0" r="8" fill="#4a5568"/>
+    
+    <!-- Right weight -->
+    <circle cx="35" cy="0" r="12" fill="#2d3748"/>
+    <circle cx="35" cy="0" r="8" fill="#4a5568"/>
+    
+    <!-- Grip texture -->
+    <rect x="-15" y="-2" width="2" height="4" fill="#718096"/>
+    <rect x="-10" y="-2" width="2" height="4" fill="#718096"/>
+    <rect x="-5" y="-2" width="2" height="4" fill="#718096"/>
+    <rect x="0" y="-2" width="2" height="4" fill="#718096"/>
+    <rect x="5" y="-2" width="2" height="4" fill="#718096"/>
+    <rect x="10" y="-2" width="2" height="4" fill="#718096"/>
+    <rect x="15" y="-2" width="2" height="4" fill="#718096"/>
+  </g>
+  
+  <!-- Muscle flex icon -->
+  <g transform="translate(60,60)">
+    <path d="M0,20 Q5,15 10,20 Q15,25 20,20 Q25,15 30,20 Q25,30 20,35 Q15,40 10,35 Q5,30 0,20 Z" fill="url(#exerciseGradient)" opacity="0.7"/>
+    <circle cx="15" cy="25" r="3" fill="#fff" opacity="0.3"/>
+  </g>
+  
+  <!-- Heart rate line -->
+  <g transform="translate(40,140)">
+    <path d="M0,10 L10,10 L15,0 L20,20 L25,0 L30,20 L35,5 L45,5 L50,10 L60,10" 
+          stroke="url(#exerciseGradient)" stroke-width="3" fill="none" opacity="0.8"/>
+  </g>
+  
+  <!-- Timer/stopwatch -->
+  <g transform="translate(140,60)">
+    <circle cx="0" cy="0" r="15" fill="#e2e8f0" stroke="#a0aec0" stroke-width="2"/>
+    <circle cx="0" cy="0" r="12" fill="#f7fafc"/>
+    <line x1="0" y1="0" x2="0" y2="-8" stroke="#4a5568" stroke-width="2"/>
+    <line x1="0" y1="0" x2="6" y2="0" stroke="#4a5568" stroke-width="1.5"/>
+    <circle cx="0" cy="0" r="2" fill="#4a5568"/>
+    <rect x="-2" y="-18" width="4" height="3" rx="2" fill="#a0aec0"/>
+  </g>
+  
+  <!-- Energy/lightning bolt -->
+  <g transform="translate(130,130)">
+    <path d="M0,0 L8,0 L5,10 L12,10 L4,20 L7,10 L0,10 Z" fill="#ffd700" opacity="0.8"/>
+  </g>
+</svg>

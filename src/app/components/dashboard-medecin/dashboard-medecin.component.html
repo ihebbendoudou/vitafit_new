@@ -1,0 +1,64 @@
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <div class="sidebar" [ngClass]="{'active': sidebarActive}">
+    <div class="sidebar-header">
+      <h3>Espace Médecin</h3>
+    </div>
+    <nav class="sidebar-nav">
+      <ul>
+        <li class="nav-item" *ngFor="let section of sections" [ngClass]="{'active': currentSection === section.name}">
+          <a (click)="changeSection(section.name)" class="nav-link">
+            <i class="fas fa-{{section.icon}}"></i>
+            <span>{{section.label}}</span>
+          </a>
+        </li>
+        <li class="nav-item" [ngClass]="{'active': currentSection === 'mon-compte'}">
+          <a (click)="changeSection('mon-compte')" class="nav-link">
+            <i class="fas fa-user-cog"></i>
+            <span>Gérer mon compte</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a (click)="logout()" class="nav-link">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Déconnexion</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="top-bar">
+      <button class="sidebar-toggle" (click)="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="user-info">
+        <span>Dr. {{ medecinName || 'Médecin' }}</span>
+        <img src="assets/doctor-avatar.png" alt="Médecin" class="avatar">
+      </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="content-area">
+      <!-- Affichage conditionnel du contenu -->
+      <app-patients *ngIf="currentSection === 'patients'"></app-patients>
+      <app-consultations-medecin *ngIf="currentSection === 'consultations'"></app-consultations-medecin>
+      <app-suivi-medicaux-medecin *ngIf="currentSection === 'suivis'"></app-suivi-medicaux-medecin>
+
+      
+      <!-- Placeholder pour les autres sections -->
+      <div *ngIf="currentSection !== 'patients' && currentSection !== 'consultations' && currentSection !== 'suivis'" class="section-placeholder">
+        <div class="placeholder-content">
+          <i class="fas fa-construction"></i>
+          <h3>Section en développement</h3>
+          <p>La section "{{ getSectionLabel(currentSection) }}" sera bientôt disponible.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Overlay pour la sidebar en mode mobile -->
+  <div class="sidebar-overlay" [ngClass]="{'active': sidebarActive && isMobileView}" (click)="toggleSidebar()"></div>
+</div>

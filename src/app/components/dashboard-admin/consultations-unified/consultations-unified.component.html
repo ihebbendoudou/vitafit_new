@@ -1,0 +1,272 @@
+<div class="consultations-unified-container">
+  <!-- En-tête avec dropdown de sélection -->
+  <div class="header">
+    <div class="header-title">
+      <i [class]="getSectionIcon()"></i>
+      <h2>{{ getSectionTitle() }}</h2>
+    </div>
+    
+    <!-- Dropdown de sélection du type de consultation -->
+    <div class="consultation-type-selector">
+      <label for="consultationType">Type de consultation:</label>
+      <select 
+        id="consultationType"
+        [(ngModel)]="selectedConsultationType" 
+        (change)="onConsultationTypeChange()" 
+        class="form-control consultation-dropdown"
+      >
+        <option *ngFor="let type of consultationTypes" [value]="type.value">
+          {{ type.label }}
+        </option>
+      </select>
+    </div>
+
+    <!-- Statistiques dynamiques -->
+    <div class="header-stats">
+      <div class="stat-card">
+        <span class="stat-number">{{ consultations.length }}</span>
+        <span class="stat-label">Total</span>
+      </div>
+      <div class="stat-card filtered">
+        <span class="stat-number">{{ filteredConsultations.length }}</span>
+        <span class="stat-label">Affichées</span>
+      </div>
+      
+      <!-- Statistiques spécifiques pour les consultations en attente -->
+      <ng-container *ngIf="selectedConsultationType === 'en_attente'">
+        <div class="stat-card priority-high">
+          <span class="stat-number">{{ getConsultationsByPriority('high').length }}</span>
+          <span class="stat-label">Urgentes</span>
+        </div>
+        <div class="stat-card type-adherent">
+          <span class="stat-number">{{ getConsultationsByType('adherent').length }}</span>
+          <span class="stat-label">Adhérents</span>
+        </div>
+        <div class="stat-card type-guest">
+          <span class="stat-number">{{ getConsultationsByType('internaute').length }}</span>
+          <span class="stat-label">Invités</span>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+
+  <!-- Filtres -->
+  <div class="filters-section">
+    <div class="filters">
+      <div class="filter-group">
+        <label>Recherche:</label>
+        <input 
+          type="text" 
+          [(ngModel)]="searchTerm" 
+          (input)="applyFilters()" 
+          placeholder="Nom, email, objet, médecin..."
+          class="form-control"
+        >
+      </div>
+      
+      <div class="filter-group">
+        <label>Type:</label>
+        <select [(ngModel)]="typeFilter" (change)="applyFilters()" class="form-control">
+          <option value="">Tous</option>
+          <option value="adherent">Adhérents</option>
+          <option value="internaute">Invités</option>
+        </select>
+      </div>
+      
+      <!-- Filtre de priorité uniquement pour les consultations en attente -->
+      <div class="filter-group" *ngIf="hasPriorityFilter()">
+        <label>Priorité:</label>
+        <select [(ngModel)]="priorityFilter" (change)="applyFilters()" class="form-control">
+          <option value="">Toutes</option>
+          <option value="high">Urgente</option>
+          <option value="medium">Moyenne</option>
+          <option value="low">Normale</option>
+        </select>
+      </div>
+      
+      <div class="filter-actions">
+        <button class="btn btn-secondary" (click)="clearFilters()">
+          <i class="fas fa-times"></i> Effacer
+        </button>
+        <button class="btn btn-primary" (click)="loadConsultations()">
+          <i class="fas fa-sync-alt"></i> Actualiser
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Chargement des consultations...</p>
+    </div>
+  </div>
+
+  <!-- Tableau des consultations -->
+  <div *ngIf="!loading" class="consultations-table-container">
+    <!-- Message si aucune consultation -->
+    <div *ngIf="filteredConsultations.length === 0" class="no-consultations">
+      <i class="fas fa-inbox fa-3x mb-3"></i>
+      <h4>Aucune consultation trouvée</h4>
+      <p *ngIf="searchTerm || typeFilter || priorityFilter">Essayez de modifier vos critères de recherche.</p>
+      <p *ngIf="!searchTerm && !typeFilter && !priorityFilter">Aucune consultation de ce type pour le moment.</p>
+    </div>
+
+    <!-- Tableau -->
+    <div *ngIf="filteredConsultations.length > 0" class="table-container">
+      <div class="table-header">
+        <h3>Consultations ({{ filteredConsultations.length }})</h3>
+        <div class="pagination-info">
+          <span>Page {{ currentPage }} sur {{ getTotalPages() }}</span>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="consultations-table">
+          <thead>
+            <tr>
+              <th>Patient</th>
+              <th>Type</th>
+              <th>Email</th>
+              <th>Objet</th>
+              <th>Médecin</th>
+              <th>Date demande</th>
+              <th *ngIf="selectedConsultationType === 'en_attente'">Priorité</th>
+              <th *ngIf="selectedConsultationType === 'valide'">Date consultation</th>
+              <th *ngIf="selectedConsultationType === 'approuve_admin' || selectedConsultationType === 'valide'">Statut médecin</th>
+              <th *ngIf="selectedConsultationType === 'refuse_admin' || selectedConsultationType === 'refuse_medecin'">Commentaire</th>
+              <th *ngIf="hasActions()">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let consultation of getPaginatedConsultations()" 
+                class="consultation-row" 
+                [class.priority-high]="selectedConsultationType === 'en_attente' && getConsultationPriority(consultation) === 'high'"
+                [class.priority-medium]="selectedConsultationType === 'en_attente' && getConsultationPriority(consultation) === 'medium'">
+              
+              <!-- Patient -->
+              <td class="patient-cell">
+                <div class="patient-info">
+                  <span class="patient-name">{{ getPatientName(consultation) }}</span>
+                  <small class="patient-id">ID: {{ getPatientId(consultation) }}</small>
+                </div>
+              </td>
+              
+              <!-- Type -->
+              <td>
+                <span class="type-badge" [ngClass]="consultation.type">
+                  {{ consultation.type === 'adherent' ? 'Adhérent' : 'Invité' }}
+                </span>
+              </td>
+              
+              <!-- Email -->
+              <td class="email-cell">
+                <span [title]="getPatientEmail(consultation)">{{ getPatientEmail(consultation) }}</span>
+              </td>
+              
+              <!-- Objet -->
+              <td class="object-cell">
+                <div class="object-text" [title]="consultation.objet">
+                  {{ consultation.objet || 'N/A' }}
+                </div>
+              </td>
+              
+              <!-- Médecin -->
+              <td class="medecin-cell">
+                <div class="medecin-info">
+                  <span class="medecin-name">{{ getMedecinInfo(consultation) }}</span>
+                </div>
+              </td>
+              
+              <!-- Date demande -->
+              <td class="date-cell">
+                <div class="date-info">
+                  <span class="date-formatted">{{ getFormattedRequestDate(consultation) }}</span>
+                </div>
+              </td>
+              
+              <!-- Priorité (seulement pour en_attente) -->
+              <td *ngIf="selectedConsultationType === 'en_attente'" class="priority-cell">
+                <span class="priority-badge" [ngClass]="getConsultationPriority(consultation)">
+                  <i class="fas fa-exclamation-triangle" *ngIf="getConsultationPriority(consultation) === 'high'"></i>
+                  <i class="fas fa-exclamation-circle" *ngIf="getConsultationPriority(consultation) === 'medium'"></i>
+                  <i class="fas fa-info-circle" *ngIf="getConsultationPriority(consultation) === 'low'"></i>
+                  {{ getConsultationPriority(consultation) === 'high' ? 'Urgente' : 
+                     getConsultationPriority(consultation) === 'medium' ? 'Moyenne' : 'Normale' }}
+                </span>
+              </td>
+              
+              <!-- Date consultation (seulement pour valide) -->
+              <td *ngIf="selectedConsultationType === 'valide'" class="consultation-date-cell">
+                <div class="consultation-date">
+                  <span class="date-formatted">{{ getFormattedConsultationDate(consultation) }}</span>
+                </div>
+              </td>
+              
+              <!-- Statut médecin (pour approuve_admin et valide) -->
+              <td *ngIf="selectedConsultationType === 'approuve_admin' || selectedConsultationType === 'valide'" class="status-cell">
+                <span class="status-badge" [ngClass]="getStatusClass(consultation)">
+                  {{ consultation.statut }}
+                </span>
+              </td>
+              
+              <!-- Commentaire (pour refuse_admin et refuse_medecin) -->
+              <td *ngIf="selectedConsultationType === 'refuse_admin' || selectedConsultationType === 'refuse_medecin'" class="comment-cell">
+                <span class="comment" 
+                      [title]="selectedConsultationType === 'refuse_admin' ? consultation.commentaire_admin : consultation.commentaire_medecin">
+                  {{ selectedConsultationType === 'refuse_admin' ? 
+                     (consultation.commentaire_admin || 'Aucun commentaire') : 
+                     (consultation.commentaire_medecin || 'Aucune raison spécifiée') }}
+                </span>
+              </td>
+              
+              <!-- Actions (seulement pour en_attente) -->
+              <td *ngIf="hasActions()" class="actions-cell">
+                <div class="action-buttons">
+                  <button 
+                    class="btn btn-success btn-sm" 
+                    (click)="approveConsultation(consultation)"
+                    title="Approuver"
+                  >
+                    <i class="fas fa-check"></i>
+                  </button>
+                  <button 
+                    class="btn btn-danger btn-sm" 
+                    (click)="rejectConsultation(consultation)"
+                    title="Refuser"
+                  >
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div *ngIf="getTotalPages() > 1" class="pagination">
+        <button 
+          (click)="previousPage()" 
+          [disabled]="currentPage === 1"
+          class="btn btn-secondary"
+        >
+          <i class="fas fa-chevron-left"></i> Précédent
+        </button>
+        
+        <span class="page-info">
+          Page {{ currentPage }} sur {{ getTotalPages() }}
+        </span>
+        
+        <button 
+          (click)="nextPage()" 
+          [disabled]="currentPage === getTotalPages()"
+          class="btn btn-secondary"
+        >
+          Suivant <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

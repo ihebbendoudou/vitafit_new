@@ -1,0 +1,142 @@
+<div class="consultation-fully-approved-container">
+  <!-- En-tête -->
+  <div class="header">
+    <h2>Consultations approuvées (Admin + Médecin)</h2>
+    <div class="header-stats">
+      <div class="stat-card success">
+        <span class="stat-number">{{ consultations.length }}</span>
+        <span class="stat-label">Entièrement approuvées</span>
+      </div>
+      <div class="stat-card filtered">
+        <span class="stat-number">{{ filteredConsultations.length }}</span>
+        <span class="stat-label">Affichées</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtres -->
+  <div class="filters-section">
+    <div class="filters">
+      <div class="filter-group">
+        <label>Recherche:</label>
+        <input 
+          type="text" 
+          [(ngModel)]="searchTerm" 
+          (input)="applyFilters()" 
+          placeholder="Nom, email, objet, médecin..."
+          class="form-control"
+        >
+      </div>
+      <div class="filter-group">
+        <label>Type:</label>
+        <select [(ngModel)]="typeFilter" (change)="applyFilters()" class="form-control">
+          <option value="">Tous</option>
+          <option value="adherent">Adhérents</option>
+          <option value="internaute">Invités</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <button (click)="clearFilters()" class="btn btn-secondary">Effacer les filtres</button>
+        <button (click)="loadFullyApprovedConsultations()" class="btn btn-primary">Actualiser</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading">
+    <p>Chargement des consultations...</p>
+  </div>
+
+  <!-- Tableau des consultations -->
+  <div *ngIf="!loading" class="consultations-table">
+    <div *ngIf="filteredConsultations.length === 0" class="no-consultations">
+      <p>Aucune consultation entièrement approuvée trouvée.</p>
+    </div>
+
+    <div *ngIf="filteredConsultations.length > 0" class="table-container">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID Patient</th>
+            <th>Patient</th>
+            <th>Email</th>
+            <th>Type</th>
+            <th>Objet</th>
+            <th>Médecin</th>
+            <th>Date demande</th>
+            <th>Date consultation</th>
+            <th>Commentaire admin</th>
+            <th>Commentaire médecin</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let consultation of getPaginatedConsultations()" class="consultation-row approved">
+            <td>
+              <span class="patient-id">{{ getPatientId(consultation) }}</span>
+            </td>
+            <td>
+              <div class="patient-info">
+                <span class="patient-name">{{ getPatientName(consultation) }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="patient-email">{{ getPatientEmail(consultation) }}</span>
+            </td>
+            <td>
+              <span class="type-badge" [ngClass]="consultation.type">
+                {{ consultation.type === 'adherent' ? 'Adhérent' : 'Invité' }}
+              </span>
+            </td>
+            <td>
+              <span class="consultation-objet">{{ consultation.objet || 'N/A' }}</span>
+            </td>
+            <td>
+              <div class="medecin-info">
+                <span class="medecin-name">{{ getMedecinInfo(consultation) }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="date-info">
+                <span class="date-formatted">{{ getFormattedRequestDate(consultation) }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="consultation-date">
+                <span class="date-formatted">{{ getFormattedConsultationDate(consultation) }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="comment admin-comment">{{ consultation.commentaire_admin || 'Aucun commentaire' }}</span>
+            </td>
+            <td>
+              <span class="comment medecin-comment">{{ consultation.commentaire_medecin || 'Aucun commentaire' }}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div *ngIf="getTotalPages() > 1" class="pagination">
+      <button 
+        (click)="previousPage()" 
+        [disabled]="currentPage === 1"
+        class="btn btn-secondary"
+      >
+        Précédent
+      </button>
+      
+      <span class="page-info">
+        Page {{ currentPage }} sur {{ getTotalPages() }}
+      </span>
+      
+      <button 
+        (click)="nextPage()" 
+        [disabled]="currentPage === getTotalPages()"
+        class="btn btn-secondary"
+      >
+        Suivant
+      </button>
+    </div>
+  </div>
+</div>

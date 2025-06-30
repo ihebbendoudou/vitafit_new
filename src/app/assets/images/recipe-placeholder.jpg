@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <rect width="400" height="300" fill="#f8f9fa"/>
+  <rect x="50" y="50" width="300" height="200" fill="#e9ecef" stroke="#dee2e6" stroke-width="2" rx="10"/>
+  <circle cx="200" cy="120" r="30" fill="#6c757d"/>
+  <path d="M185 105 L215 105 L215 135 L185 135 Z" fill="#f8f9fa"/>
+  <path d="M195 110 L205 110 L205 130 L195 130 Z" fill="#6c757d"/>
+  <text x="200" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6c757d">Image de recette</text>
+  <text x="200" y="200" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#adb5bd">non disponible</text>
+</svg>

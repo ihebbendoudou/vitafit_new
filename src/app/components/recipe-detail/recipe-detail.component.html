@@ -1,0 +1,196 @@
+<div class="recipe-detail-container">
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <nav class="navbar">
+        <div class="navbar-brand">
+          <h2>VitaFit</h2>
+        </div>
+        <div class="navbar-menu" [class.active]="isMenuOpen">
+          <ul class="navbar-nav">
+            <li><a href="/" (click)="navigateToHome()">Accueil</a></li>
+            <li><a href="/recipes" (click)="navigateToRecipes()">Recettes</a></li>
+            <li><a href="/login">Connexion</a></li>
+          </ul>
+          <div class="navbar-actions">
+            <a href="/login" class="btn btn-info">Connexion</a>
+            <a href="/register" class="btn btn-primary">S'inscrire</a>
+          </div>
+        </div>
+        <div class="navbar-toggle" [class.active]="isMenuOpen" (click)="toggleMenu()">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Chargement de la recette...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !isLoading" class="error-state">
+    <div class="container">
+      <div class="error-content">
+        <i class="fas fa-exclamation-triangle"></i>
+        <h2>Oops! Une erreur s'est produite</h2>
+        <p>{{ error }}</p>
+        <div class="error-actions">
+          <button class="btn btn-primary" (click)="goToRecipes()">
+            <i class="fas fa-arrow-left"></i>
+            Retour aux recettes
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recipe Content -->
+  <div *ngIf="recipe && !isLoading" class="recipe-content">
+    <!-- Header Section -->
+    <div class="recipe-header">
+      <div class="container">
+        <!-- Navigation -->
+        <div class="recipe-nav">
+          <button class="btn btn-back" (click)="goBack()">
+            <i class="fas fa-arrow-left"></i>
+            Retour
+          </button>
+          <button class="btn btn-recipes" (click)="goToRecipes()">
+            <i class="fas fa-list"></i>
+            Toutes les recettes
+          </button>
+        </div>
+
+        <!-- Recipe Title and Meta -->
+        <div class="recipe-title-section">
+          <h1 class="recipe-title">{{ recipe.title }}</h1>
+          <p class="recipe-description">{{ recipe.description }}</p>
+          <div class="recipe-meta">
+            <div class="meta-item">
+              <i class="fas fa-fire"></i>
+              <span>{{ recipe.calories }} calories</span>
+            </div>
+            <div class="meta-item" *ngIf="recipe.created_at">
+              <i class="fas fa-calendar-alt"></i>
+              <span>{{ recipe.created_at | date:'dd/MM/yyyy' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Image Gallery Section -->
+    <div class="image-gallery-section" *ngIf="recipeImages && recipeImages.length > 0">
+      <div class="container">
+        <div class="image-gallery">
+          <!-- Main Image -->
+          <div class="main-image-container">
+            <img 
+              [src]="getImageUrl(recipeImages[currentImageIndex].image_url)" 
+              [alt]="recipe.title"
+              class="main-image"
+              (error)="onImageError($event)">
+            <div class="recipe-placeholder" style="display: none;">
+              <i class="fas fa-utensils"></i>
+            </div>
+            
+            <!-- Navigation Arrows -->
+            <div class="image-nav" *ngIf="recipeImages.length > 1">
+              <button class="nav-btn prev-btn" (click)="previousImage()">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <button class="nav-btn next-btn" (click)="nextImage()">
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+
+            <!-- Image Counter -->
+            <div class="image-counter" *ngIf="recipeImages.length > 1">
+              {{ currentImageIndex + 1 }} / {{ recipeImages.length }}
+            </div>
+          </div>
+
+          <!-- Thumbnail Gallery -->
+          <div class="thumbnail-gallery" *ngIf="recipeImages.length > 1">
+            <div 
+              *ngFor="let image of recipeImages; let i = index" 
+              class="thumbnail"
+              [class.active]="i === currentImageIndex"
+              (click)="goToImage(i)">
+              <img 
+                [src]="getImageUrl(image.image_url)" 
+                [alt]="recipe.title + ' - Image ' + (i + 1)"
+                class="thumbnail-image"
+                (error)="onImageError($event)">
+              <div class="thumbnail-placeholder" style="display: none;">
+                <i class="fas fa-image"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recipe Details Section -->
+    <div class="recipe-details-section">
+      <div class="container">
+        <div class="recipe-details-grid">
+          <!-- Ingredients -->
+          <div class="ingredients-section">
+            <div class="section-header">
+              <i class="fas fa-shopping-list"></i>
+              <h2>Ingrédients</h2>
+            </div>
+            <div class="ingredients-list">
+              <div 
+                *ngFor="let ingredient of getIngredientsList(); let i = index" 
+                class="ingredient-item">
+                <span class="ingredient-number">{{ i + 1 }}</span>
+                <span class="ingredient-text">{{ ingredient }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Steps -->
+          <div class="steps-section">
+            <div class="section-header">
+              <i class="fas fa-list-ol"></i>
+              <h2>Étapes de préparation</h2>
+            </div>
+            <div class="steps-list">
+              <div 
+                *ngFor="let step of getStepsList(); let i = index" 
+                class="step-item">
+                <div class="step-number">{{ i + 1 }}</div>
+                <div class="step-content">
+                  <p>{{ step }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Actions -->
+    <div class="recipe-footer">
+      <div class="container">
+        <div class="footer-actions">
+          <button class="btn btn-secondary" (click)="goBack()">
+            <i class="fas fa-arrow-left"></i>
+            Retour
+          </button>
+          <button class="btn btn-primary" (click)="goToRecipes()">
+            <i class="fas fa-list"></i>
+            Voir toutes les recettes
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

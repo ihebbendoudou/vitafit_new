@@ -1,0 +1,566 @@
+<div class="recipe-management">
+  <div class="header">
+    <h2>Gestion des Recettes</h2>
+    <button class="btn btn-primary" (click)="startCreate()">
+      <i class="fas fa-plus"></i> Nouvelle Recette
+    </button>
+  </div>
+
+  <!-- Filtres -->
+  <div class="filters-section">
+    <div class="filters">
+      <div class="filter-group">
+        <label>Recherche:</label>
+        <input 
+          type="text" 
+          [(ngModel)]="searchTerm" 
+          (input)="filterRecipes()" 
+          placeholder="Titre ou description..."
+          class="form-control"
+        >
+      </div>
+      <div class="filter-group">
+        <label>Calories max:</label>
+        <input 
+          type="number" 
+          [(ngModel)]="maxCaloriesFilter" 
+          (input)="filterRecipes()" 
+          placeholder="Ex: 500"
+          class="form-control"
+        >
+      </div>
+      <div class="filter-group">
+        <label>Ingrédient:</label>
+        <input 
+          type="text" 
+          [(ngModel)]="ingredientFilter" 
+          (input)="filterRecipes()" 
+          placeholder="Ex: poulet"
+          class="form-control"
+        >
+      </div>
+      <button class="btn btn-secondary" (click)="clearFilters()">
+        <i class="fas fa-times"></i> Effacer
+      </button>
+    </div>
+  </div>
+
+  <div class="content-layout">
+    <!-- Liste des recettes -->
+    <div class="recipes-list">
+      <h3>Recettes ({{ filteredRecipes.length }})</h3>
+      <div class="recipe-cards">
+        <div 
+          *ngFor="let recipe of filteredRecipes" 
+          class="recipe-card"
+          [class.selected]="selectedRecipe?.id === recipe.id"
+          (click)="selectRecipe(recipe)"
+        >
+          <div class="recipe-image" *ngIf="recipe.images && recipe.images.length > 0">
+            <img [src]="getMainImageUrl(recipe)" [alt]="recipe.title" (error)="onImageError($event)">
+          </div>
+          <div class="recipe-content">
+            <div class="recipe-header">
+              <h4>{{ recipe.title }}</h4>
+              <span class="calories">{{ recipe.calories }} cal</span>
+            </div>
+            <p class="description">{{ recipe.description }}</p>
+            <div class="recipe-actions">
+              <button class="btn btn-sm btn-danger" (click)="deleteRecipe(recipe); $event.stopPropagation()">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Détails de la recette -->
+    <div class="recipe-details">
+      <!-- Mode création -->
+      <div *ngIf="isCreating" class="create-form">
+        <h3>Nouvelle Recette</h3>
+        <form (ngSubmit)="createRecipe()">
+          <div class="form-group">
+            <label>Titre *</label>
+            <input 
+              type="text" 
+              [(ngModel)]="newRecipe.title" 
+              name="title"
+              required 
+              class="form-control"
+            >
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea 
+              [(ngModel)]="newRecipe.description" 
+              name="description"
+              rows="3" 
+              class="form-control"
+            ></textarea>
+          </div>
+          <div class="form-group">
+            <label>Ingrédients *</label>
+            <textarea 
+              [(ngModel)]="newRecipe.ingredients" 
+              name="ingredients"
+              rows="4" 
+              required 
+              class="form-control"
+              placeholder="Listez les ingrédients, un par ligne..."
+            ></textarea>
+          </div>
+          <div class="form-group">
+            <label>Étapes de préparation *</label>
+            <textarea 
+              [(ngModel)]="newRecipe.steps" 
+              name="steps"
+              rows="6" 
+              required 
+              class="form-control"
+              placeholder="Décrivez les étapes de préparation..."
+            ></textarea>
+          </div>
+          <div class="form-group">
+            <label>Calories</label>
+            <input 
+              type="number" 
+              [(ngModel)]="newRecipe.calories" 
+              name="calories"
+              min="0" 
+              class="form-control"
+            >
+          </div>
+
+          <!-- Nouveaux champs -->
+          <div class="form-row">
+            <div class="form-group col-md-4">
+              <label>Temps de préparation (min)</label>
+              <input 
+                type="number" 
+                [(ngModel)]="newRecipe.prep_time" 
+                name="prep_time"
+                min="0" 
+                class="form-control"
+                (input)="onPrepTimeChange(newRecipe)"
+              >
+            </div>
+            <div class="form-group col-md-4">
+              <label>Temps de cuisson (min)</label>
+              <input 
+                type="number" 
+                [(ngModel)]="newRecipe.cook_time" 
+                name="cook_time"
+                min="0" 
+                class="form-control"
+                (input)="onCookTimeChange(newRecipe)"
+              >
+            </div>
+            <div class="form-group col-md-4">
+              <label>Temps total (min)</label>
+              <input 
+                type="number" 
+                [(ngModel)]="newRecipe.total_time" 
+                name="total_time"
+                min="0" 
+                class="form-control"
+                readonly
+              >
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-md-4">
+              <label>Nombre de portions</label>
+              <input 
+                type="number" 
+                [(ngModel)]="newRecipe.servings" 
+                name="servings"
+                min="1" 
+                class="form-control"
+              >
+            </div>
+            <div class="form-group col-md-4">
+              <label>Difficulté</label>
+              <select 
+                [(ngModel)]="newRecipe.difficulty" 
+                name="difficulty"
+                class="form-control"
+              >
+                <option value="Easy">Facile</option>
+                <option value="Medium">Moyen</option>
+                <option value="Hard">Difficile</option>
+              </select>
+            </div>
+            <div class="form-group col-md-4">
+              <label>Afficher sur la page principale</label>
+              <select 
+                [(ngModel)]="newRecipe.afficher" 
+                name="afficher"
+                class="form-control"
+              >
+                <option [value]="true">Oui</option>
+                <option [value]="false">Non</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label>Catégorie</label>
+              <input 
+                type="text" 
+                [(ngModel)]="newRecipe.category" 
+                name="category"
+                class="form-control"
+                placeholder="Ex: Petit-déjeuner, Déjeuner, Dîner, Dessert"
+              >
+            </div>
+            <div class="form-group col-md-6">
+              <label>Cuisine</label>
+              <input 
+                type="text" 
+                [(ngModel)]="newRecipe.cuisine" 
+                name="cuisine"
+                class="form-control"
+                placeholder="Ex: Française, Italienne, Asiatique"
+              >
+            </div>
+          </div>
+
+          <!-- Upload d'image pour nouvelle recette -->
+          <div class="form-group">
+            <label>Images de la recette</label>
+            <div class="image-upload">
+              <div class="upload-section">
+                <label>Image unique :</label>
+                <input type="file" (change)="onFileSelected($event)" accept="image/*">
+              </div>
+              
+              <div class="upload-section">
+                <label>Images multiples :</label>
+                <input type="file" (change)="onMultipleFilesSelected($event)" accept="image/*" multiple>
+              </div>
+            </div>
+            <small class="text-muted">Note: Les images seront uploadées après la création de la recette</small>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Créer</button>
+            <button type="button" class="btn btn-secondary" (click)="cancelCreate()">Annuler</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Mode affichage/édition -->
+      <div *ngIf="selectedRecipe && !isCreating" class="recipe-view">
+        <div class="recipe-header-actions">
+          <h3>{{ selectedRecipe.title }}</h3>
+          <div class="actions">
+            <button *ngIf="!isEditing" class="btn btn-primary" (click)="startEdit()">
+              <i class="fas fa-edit"></i> Modifier
+            </button>
+            <button *ngIf="isEditing" class="btn btn-success" (click)="saveRecipe()">
+              <i class="fas fa-save"></i> Sauvegarder
+            </button>
+            <button *ngIf="isEditing" class="btn btn-secondary" (click)="cancelEdit()">
+              <i class="fas fa-times"></i> Annuler
+            </button>
+          </div>
+        </div>
+
+        <div class="recipe-content">
+          <div class="form-group">
+            <label>Titre</label>
+            <input 
+              *ngIf="isEditing" 
+              type="text" 
+              [(ngModel)]="selectedRecipe.title" 
+              class="form-control"
+            >
+            <p *ngIf="!isEditing" class="form-value">{{ selectedRecipe.title }}</p>
+          </div>
+
+          <div class="form-group">
+            <label>Description</label>
+            <textarea 
+              *ngIf="isEditing" 
+              [(ngModel)]="selectedRecipe.description" 
+              rows="3" 
+              class="form-control"
+            ></textarea>
+            <p *ngIf="!isEditing" class="form-value">{{ selectedRecipe.description }}</p>
+          </div>
+
+          <div class="form-group">
+            <label>Ingrédients</label>
+            <textarea 
+              *ngIf="isEditing" 
+              [(ngModel)]="selectedRecipe.ingredients" 
+              rows="4" 
+              class="form-control"
+            ></textarea>
+            <div *ngIf="!isEditing" class="form-value ingredients-list">
+              <div *ngFor="let ingredient of selectedRecipe.ingredients.split('\n')" class="ingredient-item">
+                • {{ ingredient }}
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Étapes de préparation</label>
+            <textarea 
+              *ngIf="isEditing" 
+              [(ngModel)]="selectedRecipe.steps" 
+              rows="6" 
+              class="form-control"
+            ></textarea>
+            <div *ngIf="!isEditing" class="form-value steps-list">
+              <div *ngFor="let step of selectedRecipe.steps.split('\n'); let i = index" class="step-item">
+                <strong>{{ i + 1 }}.</strong> {{ step }}
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Calories</label>
+            <input 
+              *ngIf="isEditing" 
+              type="number" 
+              [(ngModel)]="selectedRecipe.calories" 
+              min="0" 
+              class="form-control"
+            >
+            <p *ngIf="!isEditing" class="form-value">{{ selectedRecipe.calories }} calories</p>
+          </div>
+
+          <!-- Nouveaux champs pour l'édition -->
+          <div *ngIf="isEditing" class="form-row">
+            <div class="form-group col-md-4">
+              <label>Temps de préparation (min)</label>
+              <input 
+                type="number" 
+                [(ngModel)]="selectedRecipe.prep_time" 
+                min="0" 
+                class="form-control"
+                (input)="onPrepTimeChange(selectedRecipe)"
+              >
+            </div>
+            <div class="form-group col-md-4">
+              <label>Temps de cuisson (min)</label>
+              <input 
+                type="number" 
+                [(ngModel)]="selectedRecipe.cook_time" 
+                min="0" 
+                class="form-control"
+                (input)="onCookTimeChange(selectedRecipe)"
+              >
+            </div>
+            <div class="form-group col-md-4">
+              <label>Temps total (min)</label>
+              <input 
+                type="number" 
+                [(ngModel)]="selectedRecipe.total_time" 
+                min="0" 
+                class="form-control"
+                readonly
+              >
+            </div>
+          </div>
+
+          <div *ngIf="isEditing" class="form-row">
+            <div class="form-group col-md-4">
+              <label>Nombre de portions</label>
+              <input 
+                type="number" 
+                [(ngModel)]="selectedRecipe.servings" 
+                min="1" 
+                class="form-control"
+              >
+            </div>
+            <div class="form-group col-md-4">
+              <label>Difficulté</label>
+              <select 
+                [(ngModel)]="selectedRecipe.difficulty" 
+                class="form-control"
+              >
+                <option value="Easy">Facile</option>
+                <option value="Medium">Moyen</option>
+                <option value="Hard">Difficile</option>
+              </select>
+            </div>
+            <div class="form-group col-md-4">
+              <label>Afficher sur la page principale</label>
+              <select 
+                [(ngModel)]="selectedRecipe.afficher" 
+                class="form-control"
+              >
+                <option [value]="true">Oui</option>
+                <option [value]="false">Non</option>
+              </select>
+            </div>
+          </div>
+
+          <div *ngIf="isEditing" class="form-row">
+            <div class="form-group col-md-6">
+              <label>Catégorie</label>
+              <input 
+                type="text" 
+                [(ngModel)]="selectedRecipe.category" 
+                class="form-control"
+                placeholder="Ex: Petit-déjeuner, Déjeuner, Dîner, Dessert"
+              >
+            </div>
+            <div class="form-group col-md-6">
+              <label>Cuisine</label>
+              <input 
+                type="text" 
+                [(ngModel)]="selectedRecipe.cuisine" 
+                class="form-control"
+                placeholder="Ex: Française, Italienne, Asiatique"
+              >
+            </div>
+          </div>
+
+          <!-- Affichage des nouveaux champs en mode lecture -->
+          <div *ngIf="!isEditing" class="recipe-details-grid">
+            <div class="detail-item" *ngIf="selectedRecipe.prep_time">
+              <label>Temps de préparation:</label>
+              <span>{{ selectedRecipe.prep_time }} min</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedRecipe.cook_time">
+              <label>Temps de cuisson:</label>
+              <span>{{ selectedRecipe.cook_time }} min</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedRecipe.total_time">
+              <label>Temps total:</label>
+              <span>{{ selectedRecipe.total_time }} min</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedRecipe.servings">
+              <label>Portions:</label>
+              <span>{{ selectedRecipe.servings }}</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedRecipe.difficulty">
+              <label>Difficulté:</label>
+              <span class="difficulty-badge difficulty-{{ selectedRecipe.difficulty?.toLowerCase() }}">{{ getDifficultyLabel(selectedRecipe.difficulty) }}</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedRecipe.category">
+              <label>Catégorie:</label>
+              <span>{{ selectedRecipe.category }}</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedRecipe.cuisine">
+              <label>Cuisine:</label>
+              <span>{{ selectedRecipe.cuisine }}</span>
+            </div>
+            <div class="detail-item">
+              <label>Affichage:</label>
+              <span class="status-badge" [class.status-active]="selectedRecipe.afficher" [class.status-inactive]="!selectedRecipe.afficher">
+                {{ selectedRecipe.afficher ? 'Visible' : 'Masqué' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Upload d'image -->
+          <div class="form-group">
+            <label>Image de la recette</label>
+            <div class="image-upload">
+              <div class="upload-section">
+                <label>Image unique :</label>
+                <input type="file" (change)="onFileSelected($event)" accept="image/*">
+                <button 
+                  type="button" 
+                  class="btn btn-info btn-sm" 
+                  *ngIf="selectedFile && selectedRecipe.id"
+                  (click)="uploadImage(selectedRecipe.id!)"
+                >
+                  <i class="fas fa-upload"></i> Uploader
+                </button>
+              </div>
+              
+              <div class="upload-section">
+                <label>Images multiples :</label>
+                <input type="file" (change)="onMultipleFilesSelected($event)" accept="image/*" multiple>
+                <button 
+                  type="button" 
+                  class="btn btn-success btn-sm" 
+                  *ngIf="selectedFiles && selectedFiles.length > 0 && selectedRecipe.id"
+                  (click)="uploadMultipleImages(selectedRecipe.id!)"
+                >
+                  <i class="fas fa-images"></i> Uploader ({{selectedFiles.length}})
+                </button>
+              </div>
+            </div>
+            <!-- Carrousel d'images -->
+            <div class="image-carousel-section">
+              <div class="image-carousel" *ngIf="selectedRecipeImages.length > 0; else noImages">
+                <div class="carousel-container">
+                  <img 
+                    [src]="getImageUrl(selectedRecipeImages[currentImageIndex].image_url)" 
+                    [alt]="selectedRecipe.title"
+                    class="recipe-image"
+                  >
+                  
+                  <!-- Boutons de navigation -->
+                  <button 
+                    *ngIf="selectedRecipeImages.length > 1"
+                    class="carousel-btn prev-btn" 
+                    (click)="previousImage()"
+                    aria-label="Image précédente"
+                  >
+                    <i class="fas fa-chevron-left"></i>
+                  </button>
+                  
+                  <button 
+                    *ngIf="selectedRecipeImages.length > 1"
+                    class="carousel-btn next-btn" 
+                    (click)="nextImage()"
+                    aria-label="Image suivante"
+                  >
+                    <i class="fas fa-chevron-right"></i>
+                  </button>
+                  
+                  <!-- Indicateurs de pagination -->
+                  <div class="carousel-indicators" *ngIf="selectedRecipeImages.length > 1">
+                    <button 
+                      *ngFor="let image of selectedRecipeImages; let i = index"
+                      class="indicator"
+                      [class.active]="i === currentImageIndex"
+                      (click)="goToImage(i)"
+                      [attr.aria-label]="'Aller à l\'image ' + (i + 1)"
+                    ></button>
+                  </div>
+                  
+                  <!-- Compteur d'images -->
+                  <div class="image-counter" *ngIf="selectedRecipeImages.length > 1">
+                    {{ currentImageIndex + 1 }} / {{ selectedRecipeImages.length }}
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Fallback si pas d'images -->
+              <ng-template #noImages>
+                <div class="no-images-placeholder">
+                  <i class="fas fa-image"></i>
+                  <p>Aucune image disponible</p>
+                </div>
+              </ng-template>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Date de création</label>
+            <p class="form-value">{{ selectedRecipe.created_at | date:'dd/MM/yyyy HH:mm' }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Message par défaut -->
+      <div *ngIf="!selectedRecipe && !isCreating" class="no-selection">
+        <i class="fas fa-utensils"></i>
+        <h3>Sélectionnez une recette</h3>
+        <p>Choisissez une recette dans la liste pour voir ses détails ou créez-en une nouvelle.</p>
+      </div>
+    </div>
+  </div>
+</div>

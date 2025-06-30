@@ -1,0 +1,355 @@
+<div class="programme-container">
+  <div class="header">
+    <h2>Gestion des Programmes d'Entraînement</h2>
+    <button class="btn-add" (click)="openCreateForm()" *ngIf="!showForm">
+      <i class="fas fa-plus"></i> Créer un programme
+    </button>
+  </div>
+
+  <!-- Messages d'alerte -->
+  <div class="alert alert-success" *ngIf="successMessage">
+    {{ successMessage }}
+    <button class="close-btn" (click)="clearMessages()">&times;</button>
+  </div>
+  <div class="alert alert-error" *ngIf="errorMessage">
+    {{ errorMessage }}
+    <button class="close-btn" (click)="clearMessages()">&times;</button>
+  </div>
+
+  <!-- Indicateur de chargement -->
+  <div class="loading-spinner" *ngIf="loading">
+    <div class="spinner"></div>
+    <p>Chargement en cours...</p>
+  </div>
+
+  <!-- Formulaire de création de programme -->
+  <div class="form-container" *ngIf="showForm">
+    <div class="form-header">
+      <h3>
+        <span *ngIf="currentStep === 1">Étape 1: {{ isEditMode ? 'Modifier' : 'Créer' }} le programme</span>
+        <span *ngIf="currentStep === 2">Étape 2: {{ isEditMode && editingJourId ? 'Modifier' : 'Ajouter' }} un jour d'entraînement</span>
+        <span *ngIf="currentStep === 3">Étape 3: {{ isEditMode && editingExerciceId ? 'Modifier' : 'Ajouter' }} un exercice</span>
+        <span *ngIf="currentStep === 4">Étape 4: Ajouter un média</span>
+      </h3>
+      <div class="progress-bar">
+        <div class="progress-step" [ngClass]="{'active': currentStep >= 1}">1</div>
+        <div class="progress-line" [ngClass]="{'active': currentStep >= 2}"></div>
+        <div class="progress-step" [ngClass]="{'active': currentStep >= 2}">2</div>
+        <div class="progress-line" [ngClass]="{'active': currentStep >= 3}"></div>
+        <div class="progress-step" [ngClass]="{'active': currentStep >= 3}">3</div>
+        <div class="progress-line" [ngClass]="{'active': currentStep >= 4}"></div>
+        <div class="progress-step" [ngClass]="{'active': currentStep >= 4}">4</div>
+      </div>
+    </div>
+
+    <!-- Étape 1: Informations du programme -->
+    <form [formGroup]="programmeForm" (ngSubmit)="submitProgramme()" *ngIf="currentStep === 1">
+      <div class="form-group">
+        <label for="user_id">Adhérent:</label>
+        <select id="user_id" formControlName="user_id" class="form-control">
+          <option value="">Sélectionnez un adhérent</option>
+          <option *ngFor="let client of clients" [value]="client.user_id">{{ client.user_nom }} {{ client.user_prenom }}</option>
+        </select>
+        <div class="error-message" *ngIf="programmeForm.get('user_id')?.invalid && programmeForm.get('user_id')?.touched">
+          Veuillez sélectionner un adhérent
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="nom">Nom du programme:</label>
+        <input type="text" id="nom" formControlName="nom" class="form-control">
+        <div class="error-message" *ngIf="programmeForm.get('nom')?.invalid && programmeForm.get('nom')?.touched">
+          Veuillez entrer un nom pour le programme
+        </div>
+      </div>
+        
+      <div class="form-group">
+        <label for="description">Description:</label>
+        <textarea id="description" formControlName="description" class="form-control" rows="3"></textarea>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" (click)="closeForm()">Annuler</button>
+        <button type="submit" class="btn-submit" [disabled]="programmeForm.invalid">Suivant</button>
+      </div>
+    </form>
+
+    <!-- Étape 2: Jour d'entraînement -->
+    <form [formGroup]="jourForm" (ngSubmit)="submitJour()" *ngIf="currentStep === 2">
+      <div class="form-group">
+        <label for="jour">Jour:</label>
+        <select id="jour" formControlName="jour" class="form-control">
+          <option value="">Sélectionnez un jour</option>
+          <option *ngFor="let jour of joursOptions" [value]="jour">{{ jour }}</option>
+        </select>
+        <div class="error-message" *ngIf="jourForm.get('jour')?.invalid && jourForm.get('jour')?.touched">
+          Veuillez sélectionner un jour
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="titre">Titre (optionnel):</label>
+        <input type="text" id="titre" formControlName="titre" class="form-control">
+      </div>
+
+      <div class="form-group">
+        <label for="notes">Notes (optionnel):</label>
+        <textarea id="notes" formControlName="notes" class="form-control" rows="3"></textarea>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-back" (click)="currentStep = 1">Retour</button>
+        <button type="button" class="btn-cancel" (click)="closeForm()">Annuler</button>
+        <button type="submit" class="btn-submit" [disabled]="jourForm.invalid">Suivant</button>
+      </div>
+    </form>
+
+    <!-- Étape 3: Exercice -->
+    <form [formGroup]="exerciceForm" (ngSubmit)="submitExercice()" *ngIf="currentStep === 3">
+      <div class="form-group">
+        <label for="nom">Nom de l'exercice:</label>
+        <input type="text" id="nom" formControlName="nom" class="form-control">
+        <div class="error-message" *ngIf="exerciceForm.get('nom')?.invalid && exerciceForm.get('nom')?.touched">
+          Veuillez entrer un nom pour l'exercice
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description (optionnel):</label>
+        <textarea id="description" formControlName="description" class="form-control" rows="2"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="muscle_cible">Muscle ciblé (optionnel):</label>
+        <input type="text" id="muscle_cible" formControlName="muscle_cible" class="form-control">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group half">
+          <label for="sets">Séries:</label>
+          <input type="number" id="sets" formControlName="sets" class="form-control" min="1">
+          <div class="error-message" *ngIf="exerciceForm.get('sets')?.invalid && exerciceForm.get('sets')?.touched">
+            Minimum 1 série
+          </div>
+        </div>
+
+        <div class="form-group half">
+          <label for="repetitions">Répétitions:</label>
+          <input type="number" id="repetitions" formControlName="repetitions" class="form-control" min="1">
+          <div class="error-message" *ngIf="exerciceForm.get('repetitions')?.invalid && exerciceForm.get('repetitions')?.touched">
+            Minimum 1 répétition
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group half">
+          <label for="poids">Poids (optionnel):</label>
+          <input type="text" id="poids" formControlName="poids" class="form-control" placeholder="Ex: 10kg, corps, etc.">
+        </div>
+
+        <div class="form-group half">
+          <label for="temps_repos">Temps de repos (secondes):</label>
+          <input type="number" id="temps_repos" formControlName="temps_repos" class="form-control" min="0">
+          <div class="error-message" *ngIf="exerciceForm.get('temps_repos')?.invalid && exerciceForm.get('temps_repos')?.touched">
+            Minimum 0 seconde
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="ordre">Ordre d'exécution:</label>
+        <input type="number" id="ordre" formControlName="ordre" class="form-control" min="1">
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-back" (click)="currentStep = 2" *ngIf="!isEditMode">Retour</button>
+        <button type="button" class="btn-cancel" (click)="closeForm()">Annuler</button>
+        <button type="submit" class="btn-submit" [disabled]="exerciceForm.invalid">
+          {{ isEditMode ? 'Confirmer' : 'Suivant' }}
+        </button>
+      </div>
+    </form>
+
+    <!-- Étape 4: Média -->
+    <form [formGroup]="mediaForm" (ngSubmit)="submitMedia()" *ngIf="currentStep === 4">
+      <div class="form-group">
+        <label for="type">Type de média:</label>
+        <select id="type" formControlName="type" class="form-control">
+          <option *ngFor="let type of typesMediaOptions" [value]="type.value">{{ type.label }}</option>
+        </select>
+      </div>
+
+      <!-- Champ URL pour YouTube -->
+      <div class="form-group" *ngIf="mediaForm.get('type')?.value === 'youtube'">
+        <label for="url">URL YouTube:</label>
+        <input type="text" id="url" formControlName="url" class="form-control" placeholder="https://...">
+        <div class="error-message" *ngIf="mediaForm.get('url')?.invalid && mediaForm.get('url')?.touched">
+          Veuillez entrer une URL valide
+        </div>
+      </div>
+
+      <!-- Upload de fichier pour Image ou GIF -->
+      <div class="form-group" *ngIf="mediaForm.get('type')?.value === 'image' || mediaForm.get('type')?.value === 'gif'">
+        <label for="fileUpload">Sélectionner un fichier:</label>
+        <input type="file" id="fileUpload" (change)="onFileSelected($event)" class="form-control" 
+               accept=".jpg, .jpeg, .png, .gif">
+        <div class="error-message" *ngIf="fileUploadError">
+          {{ fileUploadError }}
+        </div>
+        <div class="preview-container" *ngIf="filePreview">
+          <img [src]="filePreview" alt="Aperçu" class="file-preview">
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-back" (click)="currentStep = 3">Retour</button>
+        <button type="button" class="btn-cancel" (click)="closeForm()">Annuler</button>
+        <button type="submit" class="btn-submit" [disabled]="!isMediaFormValid()">Ajouter média</button>
+      </div>
+
+      <div class="form-navigation">
+        <button type="button" class="btn-secondary" (click)="addAnotherExercice()">
+          <i class="fas fa-plus"></i> Ajouter un autre exercice
+        </button>
+        <button type="button" class="btn-secondary" (click)="addAnotherJour()">
+          <i class="fas fa-plus"></i> Ajouter un autre jour
+        </button>
+        <button type="button" class="btn-primary" (click)="finishProgramme()">
+          <i class="fas fa-check"></i> Terminer le programme
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Liste des programmes -->
+  <div class="programmes-list" *ngIf="!showForm && programmes.length > 0">
+    <h3>Mes Programmes d'entraînement</h3>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Nom</th>
+            <th>Description</th>
+            <th>Adhérent</th>
+            <th>Date de création</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let programme of programmes">
+            <td>{{ programme.nom }}</td>
+            <td>{{ programme.description || 'Aucune description' }}</td>
+            <td>{{ programme.user_nom }} {{ programme.user_prenom }}</td>
+            <td>{{ programme.created_at | date:'dd/MM/yyyy' }}</td>
+            <td class="actions-cell">
+              <button class="btn-view" title="Voir les détails" (click)="programme.id && viewProgrammeDetails(programme.id)">
+                <i class="fas fa-eye"></i>
+              </button>
+              <button class="btn-edit" title="Modifier" (click)="editProgramme(programme)">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn-delete" title="Supprimer" (click)="programme.id && deleteProgramme(programme.id)">
+                <i class="fas fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Détails du programme sélectionné -->
+  <div class="programme-details" *ngIf="selectedProgramme && !showForm">
+    <div class="details-header">
+      <h3>{{ selectedProgramme.nom }}</h3>
+      <button class="btn-close" (click)="selectedProgramme = null">&times;</button>
+    </div>
+    
+    <p class="description">{{ selectedProgramme.description || 'Aucune description' }}</p>
+    
+    <div class="jours-container" *ngIf="selectedProgramme.jours && selectedProgramme.jours.length > 0">
+      <div class="jour-card" *ngFor="let jour of selectedProgramme.jours">
+        <div class="jour-header">
+          <div class="jour-info">
+            <h4>{{ jour.jour }}</h4>
+            <span *ngIf="jour.titre">{{ jour.titre }}</span>
+          </div>
+          <div class="jour-actions">
+            <button class="btn-edit-small" title="Modifier le jour" (click)="editJour(jour)">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn-delete-small" title="Supprimer le jour" (click)="jour.id && deleteJour(jour.id)">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+        
+        <p class="notes" *ngIf="jour.notes">{{ jour.notes }}</p>
+        
+        <div class="exercices-list" *ngIf="jour.exercices && jour.exercices.length > 0">
+          <div class="exercice-item" *ngFor="let exercice of jour.exercices">
+            <div class="exercice-header">
+              <div class="exercice-info">
+                <h5>{{ exercice.nom }}</h5>
+                <span class="muscle">{{ exercice.muscle_cible }}</span>
+              </div>
+              <div class="exercice-actions">
+                <button class="btn-edit-small" title="Modifier l'exercice" (click)="editExercice(exercice)">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-delete-small" title="Supprimer l'exercice" (click)="exercice.id && deleteExercice(exercice.id)">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+            
+            <p class="description" *ngIf="exercice.description">{{ exercice.description }}</p>
+            
+            <div class="exercice-details">
+              <span class="detail"><i class="fas fa-layer-group"></i> {{ exercice.sets }} séries</span>
+              <span class="detail"><i class="fas fa-redo"></i> {{ exercice.repetitions }} répétitions</span>
+              <span class="detail" *ngIf="exercice.poids"><i class="fas fa-dumbbell"></i> {{ exercice.poids }}</span>
+              <span class="detail"><i class="fas fa-clock"></i> {{ exercice.temps_repos }}s repos</span>
+            </div>
+            
+            <div class="media-list" *ngIf="exercice.medias && exercice.medias.length > 0">
+              <div class="media-item" *ngFor="let media of exercice.medias">
+                <!-- Image -->
+                <div *ngIf="media.type === 'image'" class="media-container">
+                  <img [src]="media.url" alt="Image de l'exercice" class="media-image">
+                  <button class="btn-delete-media" title="Supprimer le média" (click)="media.id && deleteMedia(media.id)">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+                
+                <!-- GIF -->
+                <div *ngIf="media.type === 'gif'" class="media-container">
+                  <img [src]="media.url" alt="GIF de l'exercice" class="media-gif">
+                  <button class="btn-delete-media" title="Supprimer le média" (click)="media.id && deleteMedia(media.id)">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+                
+                <!-- YouTube -->
+                <div *ngIf="media.type === 'youtube'" class="media-youtube">
+                  <iframe [src]="media.url | safeUrl" frameborder="0" allowfullscreen></iframe>
+                  <button class="btn-delete-media" title="Supprimer le média" (click)="media.id && deleteMedia(media.id)">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Message si aucun programme -->
+  <div class="no-data-message" *ngIf="!showForm && programmes.length === 0 && !loading">
+    <i class="fas fa-clipboard-list"></i>
+    <p>Aucun programme d'entraînement trouvé</p>
+    <p class="sub-message">Cliquez sur "Créer un programme" pour commencer</p>
+  </div>
+</div>

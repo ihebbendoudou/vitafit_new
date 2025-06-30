@@ -1,0 +1,211 @@
+<div class="dossier-medical-container">
+  <div class="header">
+    <h2><i class="fas fa-heartbeat"></i> Mon Dossier Médical</h2>
+    <p class="subtitle">Consultez votre historique médical et vos suivis de santé</p>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Chargement de votre dossier médical...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <i class="fas fa-exclamation-triangle"></i>
+    <p>{{ error }}</p>
+  </div>
+
+  <!-- Content -->
+  <div *ngIf="!loading && !error" class="content">
+    
+    <!-- Données Initiales de Santé -->
+    <div class="section" *ngIf="donneesInitiales">
+      <h3><i class="fas fa-user-md"></i> Données Initiales de Santé</h3>
+      <div class="card">
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h4>Mesures Corporelles</h4>
+              <div class="info-grid">
+                <div class="info-item">
+                  <label>IMC:</label>
+                  <span>{{ donneesInitiales.imc }} kg/m²</span>
+                </div>
+                <div class="info-item">
+                  <label>Tour de taille:</label>
+                  <span>{{ donneesInitiales.tour_taille }} cm</span>
+                </div>
+                <div class="info-item">
+                  <label>Tour de hanches:</label>
+                  <span>{{ donneesInitiales.tour_hanches }} cm</span>
+                </div>
+                <div class="info-item">
+                  <label>Tour de bras:</label>
+                  <span>{{ donneesInitiales.tour_bras }} cm</span>
+                </div>
+                <div class="info-item">
+                  <label>Tour de cuisses:</label>
+                  <span>{{ donneesInitiales.tour_cuisses }} cm</span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <h4>Analyses Médicales</h4>
+              <div class="info-grid">
+                <div class="info-item">
+                  <label>Tension artérielle:</label>
+                  <span>{{ donneesInitiales.tension_arterielle }}</span>
+                </div>
+                <div class="info-item">
+                  <label>Fréquence cardiaque:</label>
+                  <span>{{ donneesInitiales.frequence_cardiaque }} bpm</span>
+                </div>
+                <div class="info-item">
+                  <label>Glycémie:</label>
+                  <span>{{ donneesInitiales.glycemie }} mg/dL</span>
+                </div>
+                <div class="info-item">
+                  <label>Cholestérol:</label>
+                  <span>{{ donneesInitiales.cholesterol }} mg/dL</span>
+                </div>
+                <div class="info-item">
+                  <label>Ferritine:</label>
+                  <span>{{ donneesInitiales.ferritine }} ng/mL</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row mt-3" *ngIf="donneesInitiales.pathologies">
+            <div class="col-12">
+              <h4>Pathologies</h4>
+              <p class="pathologies">{{ donneesInitiales.pathologies }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Graphiques de Progression -->
+    <div class="section" *ngIf="suivisResultats.length > 0">
+      <h3><i class="fas fa-chart-line"></i> Graphiques de Progression</h3>
+      
+      <div class="charts-container">
+        <!-- Graphique du Poids -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h4><i class="fas fa-weight"></i> Évolution du Poids</h4>
+          </div>
+          <div class="chart-body">
+            <canvas baseChart
+              [data]="poidsChartData"
+              [options]="lineChartOptions"
+              [type]="chartType">
+            </canvas>
+          </div>
+        </div>
+
+        <!-- Graphique de l'IMC -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h4><i class="fas fa-calculator"></i> Évolution de l'IMC</h4>
+          </div>
+          <div class="chart-body">
+            <canvas baseChart
+              [data]="imcChartData"
+              [options]="lineChartOptions"
+              [type]="chartType">
+            </canvas>
+          </div>
+        </div>
+
+        <!-- Graphique des Mesures Corporelles -->
+        <div class="chart-card chart-wide">
+          <div class="chart-header">
+            <h4><i class="fas fa-ruler"></i> Évolution des Mesures Corporelles</h4>
+          </div>
+          <div class="chart-body">
+            <canvas baseChart
+              [data]="mesuresChartData"
+              [options]="lineChartOptions"
+              [type]="chartType">
+            </canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Suivis de Résultats -->
+    <div class="section" *ngIf="suivisResultats.length > 0">
+      <h3><i class="fas fa-list-alt"></i> Historique Détaillé des Suivis</h3>
+      <div class="suivis-grid">
+        <div class="suivi-card" *ngFor="let suivi of suivisResultats">
+          <div class="suivi-header">
+            <h4>{{ formatDate(suivi.date_suivi) }}</h4>
+            <span class="badge" [ngClass]="getNiveauEnergieBadgeClass(suivi.niveau_energie)">
+              {{ suivi.niveau_energie }}
+            </span>
+          </div>
+          <div class="suivi-body">
+            <div class="mesures">
+              <div class="mesure-item">
+                <i class="fas fa-weight"></i>
+                <span>{{ suivi.poids }} kg</span>
+              </div>
+              <div class="mesure-item">
+                <i class="fas fa-calculator"></i>
+                <span>IMC: {{ suivi.imc }}</span>
+              </div>
+            </div>
+            <div class="adherence">
+              <label>Adhérence au programme:</label>
+              <span class="badge" [ngClass]="getAdherenceBadgeClass(suivi.adherence_programme)">
+                {{ suivi.adherence_programme }}
+              </span>
+            </div>
+            <div class="observations" *ngIf="suivi.observations">
+              <label>Observations:</label>
+              <p>{{ suivi.observations }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Suivis Médicaux -->
+    <div class="section" *ngIf="suivisMedicaux.length > 0">
+      <h3><i class="fas fa-stethoscope"></i> Suivis Médicaux</h3>
+      <div class="medical-suivis">
+        <div class="medical-card" *ngFor="let suivi of suivisMedicaux">
+          <div class="medical-header">
+            <h4>Consultation #{{ suivi.id }}</h4>
+            <span class="date" *ngIf="suivi.date_creation">
+              {{ formatDate(suivi.date_creation.toString()) }}
+            </span>
+          </div>
+          <div class="medical-body">
+            <div class="medical-info" *ngIf="suivi.medecin_nom">
+              <label><i class="fas fa-user-md"></i> Médecin:</label>
+              <span>{{ suivi.medecin_nom }}</span>
+            </div>
+            <div class="medical-info" *ngIf="suivi.diagnostic">
+              <label><i class="fas fa-diagnoses"></i> Diagnostic:</label>
+              <p class="diagnostic">{{ suivi.diagnostic }}</p>
+            </div>
+            <div class="medical-info" *ngIf="suivi.recommandations">
+              <label><i class="fas fa-prescription"></i> Recommandations:</label>
+              <p class="recommandations">{{ suivi.recommandations }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message si aucune donnée -->
+    <div *ngIf="!donneesInitiales && suivisResultats.length === 0 && suivisMedicaux.length === 0" class="no-data">
+      <i class="fas fa-folder-open"></i>
+      <h3>Aucun dossier médical trouvé</h3>
+      <p>Votre dossier médical sera disponible une fois que vous aurez effectué vos premiers suivis.</p>
+    </div>
+  </div>
+</div>

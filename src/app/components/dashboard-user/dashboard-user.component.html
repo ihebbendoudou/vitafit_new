@@ -1,0 +1,57 @@
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <div class="sidebar" [ngClass]="{'active': sidebarActive}">
+    <div class="sidebar-header">
+      <h3>Espace Utilisateur</h3>
+    </div>
+    <nav class="sidebar-nav">
+      <ul>
+        <li class="nav-item" *ngFor="let section of sections" [ngClass]="{'active': currentSection === section.name}">
+          <a (click)="changeSection(section.name)" class="nav-link">
+            <i class="fas fa-{{section.icon}}"></i>
+            <span>{{section.label}}</span>
+          </a>
+        </li>
+        <li class="nav-item" [ngClass]="{'active': currentSection === 'mon-compte'}">
+          <a (click)="changeSection('mon-compte')" class="nav-link">
+            <i class="fas fa-user-cog"></i>
+            <span>Gérer mon compte</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a (click)="logout()" class="nav-link">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Déconnexion</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="top-bar">
+      <button class="sidebar-toggle" (click)="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="user-info">
+        <div class="user-details">
+          <span class="user-greeting">Bonjour,</span>
+          <span class="user-name">{{ userName || 'Utilisateur' }}</span>
+        </div>
+        <div class="avatar-container">
+          <i class="fas fa-user-circle avatar-icon"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="content-area">
+      <!-- Router outlet for nested routes -->
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+  
+  <!-- Overlay pour la sidebar en mode mobile -->
+  <div class="sidebar-overlay" [ngClass]="{'active': sidebarActive && isMobileView}" (click)="toggleSidebar()"></div>
+</div>

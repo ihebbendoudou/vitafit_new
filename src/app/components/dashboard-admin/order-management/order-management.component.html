@@ -1,0 +1,560 @@
+<div class="order-management">
+  <!-- En-tête -->
+  <div class="header">
+    <div class="header-content">
+      <div class="header-title">
+        <i class="fas fa-shopping-cart"></i>
+        <h2>Gestion des Commandes</h2>
+      </div>
+      
+      <!-- Sélecteur de vue -->
+      <div class="view-selector">
+        <button 
+          class="view-btn" 
+          [class.active]="viewMode === 'table'"
+          (click)="setViewMode('table')">
+          <i class="fas fa-table"></i>
+          Tableau
+        </button>
+        <button 
+          class="view-btn" 
+          [class.active]="viewMode === 'cards'"
+          (click)="setViewMode('cards')">
+          <i class="fas fa-th-large"></i>
+          Cartes
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistiques -->
+  <div class="stats-section">
+    <div class="stat-card total">
+      <div class="stat-icon">
+        <i class="fas fa-shopping-cart"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">{{commandes.length}}</div>
+        <div class="stat-label">Total Commandes</div>
+      </div>
+    </div>
+    
+    <div class="stat-card pending">
+      <div class="stat-icon">
+        <i class="fas fa-clock"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">{{getCommandesCountByStatut('en_attente')}}</div>
+        <div class="stat-label">En Attente</div>
+      </div>
+    </div>
+    
+    <div class="stat-card processing">
+      <div class="stat-icon">
+        <i class="fas fa-cog"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">{{getCommandesCountByStatut('en_preparation')}}</div>
+        <div class="stat-label">En Préparation</div>
+      </div>
+    </div>
+    
+    <div class="stat-card shipped">
+      <div class="stat-icon">
+        <i class="fas fa-shipping-fast"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">{{getCommandesCountByStatut('expédiée')}}</div>
+        <div class="stat-label">Expédiées</div>
+      </div>
+    </div>
+    
+    <div class="stat-card delivered">
+      <div class="stat-icon">
+        <i class="fas fa-check-double"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">{{getCommandesCountByStatut('livrée')}}</div>
+        <div class="stat-label">Livrées</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtres et recherche -->
+  <div class="filters-section">
+    <div class="search-bar">
+      <div class="search-input">
+        <i class="fas fa-search"></i>
+        <input 
+          type="text" 
+          placeholder="Rechercher par référence, nom, email..."
+          [(ngModel)]="searchTerm"
+          (input)="onSearchChange($event)">
+        <button 
+          *ngIf="searchTerm" 
+          class="clear-search" 
+          (click)="clearSearch()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+    
+    <div class="filters">
+      <div class="filter-group">
+        <label>Statut</label>
+        <select [(ngModel)]="filterStatut" class="filter-select">
+          <option value="">Tous les statuts</option>
+          <option *ngFor="let statut of statutsDisponibles" [value]="statut.value">
+            {{statut.label}}
+          </option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label>Période</label>
+        <select [(ngModel)]="filterPeriode" class="filter-select">
+          <option value="">Toutes les périodes</option>
+          <option value="today">Aujourd'hui</option>
+          <option value="week">Cette semaine</option>
+          <option value="month">Ce mois</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label>Date début</label>
+        <input type="date" [(ngModel)]="dateDebut" class="filter-input">
+      </div>
+      
+      <div class="filter-group">
+        <label>Date fin</label>
+        <input type="date" [(ngModel)]="dateFin" class="filter-input">
+      </div>
+      
+      <div class="filter-group">
+        <label>Montant min (dt)</label>
+        <input type="number" [(ngModel)]="montantMin" class="filter-input" min="0">
+      </div>
+      
+      <div class="filter-actions">
+        <button class="btn btn-secondary" (click)="resetFilters()">
+          <i class="fas fa-times"></i>
+          Réinitialiser
+        </button>
+        <button class="btn btn-primary" (click)="exportCommandes()">
+          <i class="fas fa-download"></i>
+          Exporter
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- État de chargement -->
+  <div *ngIf="loading" class="loading">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Chargement des commandes...</p>
+    </div>
+  </div>
+
+  <!-- Message d'erreur -->
+  <div *ngIf="error" class="error-message">
+    <i class="fas fa-exclamation-triangle"></i>
+    <span>{{error}}</span>
+    <button class="btn btn-primary" (click)="loadCommandes()">
+      <i class="fas fa-redo"></i>
+      Réessayer
+    </button>
+  </div>
+
+  <!-- Contenu principal -->
+  <div *ngIf="!loading && !error" class="main-content">
+    <!-- En-tête du contenu -->
+    <div class="content-header">
+      <div class="content-title">
+        <h3>Liste des Commandes</h3>
+        <div class="pagination-info">
+          {{getPaginationInfo()}} commandes
+        </div>
+      </div>
+      
+      <div class="content-actions">
+        <button class="btn btn-secondary" (click)="refreshCommandes()">
+          <i class="fas fa-sync-alt"></i>
+          Actualiser
+        </button>
+      </div>
+    </div>
+
+    <!-- Vue Tableau -->
+    <div *ngIf="viewMode === 'table'" class="table-wrapper">
+      <div class="orders-table">
+        <table class="table">
+          <thead>
+            <tr>
+              <th (click)="sort('reference')" class="sortable">
+                Référence
+                <i class="fas fa-sort" 
+                   [class.fa-sort-up]="sortField === 'reference' && sortDirection === 'asc'"
+                   [class.fa-sort-down]="sortField === 'reference' && sortDirection === 'desc'"></i>
+              </th>
+              <th (click)="sort('date_commande')" class="sortable">
+                Date
+                <i class="fas fa-sort" 
+                   [class.fa-sort-up]="sortField === 'date_commande' && sortDirection === 'asc'"
+                   [class.fa-sort-down]="sortField === 'date_commande' && sortDirection === 'desc'"></i>
+              </th>
+              <th>Client</th>
+              <th (click)="sort('total')" class="sortable">
+                Montant
+                <i class="fas fa-sort" 
+                   [class.fa-sort-up]="sortField === 'total' && sortDirection === 'asc'"
+                   [class.fa-sort-down]="sortField === 'total' && sortDirection === 'desc'"></i>
+              </th>
+              <th>Statut</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let commande of getPagedCommandes(); trackBy: trackByCommandeId" 
+                class="order-row" 
+                [class.priority]="isPriorityOrder(commande)">
+              <td>
+                <div class="reference-info">
+                  <strong>{{commande.reference}}</strong>
+                  <small *ngIf="isPriorityOrder(commande)" class="priority-badge">
+                    <i class="fas fa-star"></i> Priorité
+                  </small>
+                </div>
+              </td>
+              <td>
+                <div class="date-info">
+                  <div>{{formatDate(commande.date_commande)}}</div>
+                  <small>{{getTimeAgo(commande.date_commande)}}</small>
+                </div>
+              </td>
+              <td>
+                <div class="client-info">
+                  <div class="client-name">{{commande.prenom}} {{commande.nom}}</div>
+                  <div class="client-email">{{commande.email}}</div>
+                </div>
+              </td>
+              <td>
+                <div class="amount">{{ commande.total | currency:'TND':'symbol':'1.2-2':'fr' }}</div>
+              </td>
+              <td>
+                <span class="status-badge" [style.background-color]="getStatutColor(commande.statut)">
+                  <i [class]="getStatutIcon(commande.statut)"></i>
+                  {{getStatutLabel(commande.statut)}}
+                </span>
+              </td>
+              <td>
+                <div class="actions">
+                  <button class="btn btn-sm btn-primary" 
+                          (click)="loadCommandeDetails(commande.id)"
+                          title="Voir les détails">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  
+                  <div class="dropdown" [class.open]="openDropdown === 'order-' + commande.id">
+                    <button class="btn btn-sm btn-secondary dropdown-toggle" 
+                            (click)="toggleDropdown('order-' + commande.id)"
+                            title="Actions">
+                      <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <div class="dropdown-menu">
+                      <button *ngFor="let statut of getStatutsPossibles(commande.statut)" 
+                              class="dropdown-item"
+                              (click)="updateStatut(commande.id, statut.value)">
+                        <i [class]="getStatutIcon(statut.value)"></i>
+                        Marquer comme {{statut.label}}
+                      </button>
+                      <div class="dropdown-divider" *ngIf="getStatutsPossibles(commande.statut).length > 0"></div>
+                      <button class="dropdown-item" (click)="printOrder(commande)">
+                        <i class="fas fa-print"></i>
+                        Imprimer
+                      </button>
+                      <button class="dropdown-item" (click)="sendEmail(commande)">
+                        <i class="fas fa-envelope"></i>
+                        Envoyer email
+                      </button>
+                      <div class="dropdown-divider"></div>
+                      <button class="dropdown-item danger" 
+                              (click)="cancelOrder(commande)"
+                              *ngIf="commande.statut === 'en_attente' || commande.statut === 'validée'">
+                        <i class="fas fa-times"></i>
+                        Annuler
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Vue Cartes -->
+    <div *ngIf="viewMode === 'cards'" class="orders-grid">
+      <div *ngFor="let commande of getPagedCommandes(); trackBy: trackByCommandeId" 
+           class="order-card" 
+           [class.priority]="isPriorityOrder(commande)">
+        <div class="card-header">
+          <div class="order-reference">
+            <strong>{{commande.reference}}</strong>
+            <small *ngIf="isPriorityOrder(commande)" class="priority-badge">
+              <i class="fas fa-star"></i>
+            </small>
+          </div>
+          <span class="status-badge" [style.background-color]="getStatutColor(commande.statut)">
+            <i [class]="getStatutIcon(commande.statut)"></i>
+            {{getStatutLabel(commande.statut)}}
+          </span>
+        </div>
+        
+        <div class="card-body">
+          <div class="client-info">
+            <div class="client-avatar">
+              {{getClientInitials(commande.nom, commande.prenom)}}
+            </div>
+            <div class="client-details">
+              <div class="client-name">{{commande.prenom}} {{commande.nom}}</div>
+              <div class="client-email">{{commande.email}}</div>
+            </div>
+          </div>
+          
+          <div class="order-info">
+            <div class="info-item">
+              <i class="fas fa-calendar"></i>
+              <span>{{formatDate(commande.date_commande)}}</span>
+            </div>
+            <div class="info-item">
+              <i class="fas fa-euro-sign"></i>
+              <span>{{commande.total | currency:'EUR':'symbol':'1.2-2':'fr'}}</span>
+            </div>
+            <div class="info-item">
+              <i class="fas fa-map-marker-alt"></i>
+              <span>{{commande.adresse_livraison}}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card-actions">
+          <button class="btn btn-sm btn-primary" 
+                  (click)="loadCommandeDetails(commande.id)">
+            <i class="fas fa-eye"></i>
+            Détails
+          </button>
+          
+          <button *ngIf="canAdvanceStatus(commande.statut)" 
+                  class="btn btn-sm btn-success" 
+                  (click)="advanceStatus(commande)">
+            <i class="fas fa-arrow-right"></i>
+            Avancer
+          </button>
+          
+          <div class="dropdown" [class.open]="openDropdown === 'card-' + commande.id">
+            <button class="btn btn-sm btn-secondary" 
+                    (click)="toggleDropdown('card-' + commande.id)">
+              <i class="fas fa-ellipsis-v"></i>
+            </button>
+            <div class="dropdown-menu">
+              <button *ngFor="let statut of getStatutsPossibles(commande.statut)" 
+                      class="dropdown-item"
+                      (click)="updateStatut(commande.id, statut.value)">
+                <i [class]="getStatutIcon(statut.value)"></i>
+                {{statut.label}}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message si aucune commande -->
+    <div *ngIf="commandesFiltrees.length === 0" class="no-orders">
+      <div class="no-orders-icon">
+        <i class="fas fa-shopping-cart"></i>
+      </div>
+      <h3>Aucune commande trouvée</h3>
+      <p>Aucune commande ne correspond à vos critères de recherche.</p>
+      <button class="btn btn-primary" (click)="resetFilters()">
+        <i class="fas fa-times"></i>
+        Réinitialiser les filtres
+      </button>
+    </div>
+
+    <!-- Pagination -->
+    <div *ngIf="commandesFiltrees.length > 0" class="pagination-section">
+      <div class="pagination-controls">
+        <div class="page-size">
+          <label>Afficher</label>
+          <select [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+          <span>par page</span>
+        </div>
+        
+        <div class="pagination-nav">
+          <button class="btn btn-sm" 
+                  [disabled]="currentPage === 1" 
+                  (click)="goToPage(currentPage - 1)">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          
+          <button *ngFor="let page of getVisiblePages()" 
+                  class="btn btn-sm" 
+                  [class.active]="page === currentPage"
+                  (click)="goToPage(page)">
+            {{page}}
+          </button>
+          
+          <button class="btn btn-sm" 
+                  [disabled]="currentPage === getTotalPages()" 
+                  (click)="goToPage(currentPage + 1)">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal des détails de commande -->
+<div *ngIf="selectedCommande" class="modal-overlay" (click)="closeDetails()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>
+        <i class="fas fa-shopping-cart"></i>
+        Détails de la commande {{selectedCommande.commande.reference}}
+      </h3>
+      <button class="close-btn" (click)="closeDetails()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="modal-body">
+      <!-- Informations générales -->
+      <div class="order-details-section">
+        <h4>Informations générales</h4>
+        <div class="details-grid">
+          <div class="detail-item">
+            <label>Référence</label>
+            <span>{{selectedCommande.commande.reference}}</span>
+          </div>
+          <div class="detail-item">
+            <label>Date de commande</label>
+            <span>{{formatDate(selectedCommande.commande.date_commande)}}</span>
+          </div>
+          <div class="detail-item">
+            <label>Statut actuel</label>
+            <span class="status-badge" [style.background-color]="getStatutColor(selectedCommande.commande.statut)">
+              <i [class]="getStatutIcon(selectedCommande.commande.statut)"></i>
+              {{getStatutLabel(selectedCommande.commande.statut)}}
+            </span>
+          </div>
+          <div class="detail-item">
+            <label>Mode de paiement</label>
+            <span>{{selectedCommande.commande.mode_paiement}}</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Informations client -->
+      <div class="order-details-section">
+        <h4>Informations client</h4>
+        <div class="details-grid">
+          <div class="detail-item">
+            <label>Nom complet</label>
+            <span>{{selectedCommande.commande.prenom}} {{selectedCommande.commande.nom}}</span>
+          </div>
+          <div class="detail-item">
+            <label>Email</label>
+            <span>{{selectedCommande.commande.email}}</span>
+          </div>
+          <div class="detail-item">
+            <label>Téléphone</label>
+            <span>{{selectedCommande.commande.telephone}}</span>
+          </div>
+          <div class="detail-item full-width">
+            <label>Adresse de livraison</label>
+            <span>{{selectedCommande.commande.adresse_livraison}}</span>
+          </div>
+          <div class="detail-item full-width" *ngIf="selectedCommande.commande.notes">
+            <label>Notes</label>
+            <span>{{selectedCommande.commande.notes}}</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Articles commandés -->
+      <div class="order-details-section">
+        <h4>Articles commandés ({{getTotalItems()}} articles)</h4>
+        <div class="items-list">
+          <div *ngFor="let item of selectedCommande.items" class="item-row">
+            <div class="item-info">
+              <div class="item-name">{{item.nom}}</div>
+              <div class="item-details">
+                Quantité: {{item.quantite}} × {{item.prix_unitaire | currency:'EUR':'symbol':'1.2-2':'fr'}}
+              </div>
+            </div>
+            <div class="item-total">
+              {{(item.quantite * item.prix_unitaire) | currency:'EUR':'symbol':'1.2-2':'fr'}}
+            </div>
+          </div>
+        </div>
+        <div class="total-section">
+          <div class="total-row">
+            <span>Total</span>
+            <span class="total-amount">{{selectedCommande.commande.total | currency:'EUR':'symbol':'1.2-2':'fr'}}</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Historique des statuts -->
+      <div class="order-details-section">
+        <h4>Historique des statuts</h4>
+        <div class="status-timeline">
+          <div *ngFor="let statut of selectedCommande.statuts" class="timeline-item">
+            <div class="timeline-icon" [style.background-color]="getStatutColor(statut.statut)">
+              <i [class]="getStatutIcon(statut.statut)"></i>
+            </div>
+            <div class="timeline-content">
+              <div class="timeline-title">{{getStatutLabel(statut.statut)}}</div>
+              <div class="timeline-date">{{formatDate(statut.date_statut)}}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <div class="status-actions">
+        <button *ngFor="let statut of getStatutsPossibles(selectedCommande.commande.statut)" 
+                class="btn btn-primary"
+                (click)="updateStatut(selectedCommande.commande.id, statut.value)">
+          <i [class]="getStatutIcon(statut.value)"></i>
+          Marquer comme {{statut.label}}
+        </button>
+      </div>
+      
+      <div class="modal-actions">
+        <button class="btn btn-secondary" (click)="printOrder(selectedCommande.commande)">
+          <i class="fas fa-print"></i>
+          Imprimer
+        </button>
+        <button class="btn btn-secondary" (click)="sendEmail(selectedCommande.commande)">
+          <i class="fas fa-envelope"></i>
+          Envoyer email
+        </button>
+        <button class="btn btn-secondary" (click)="closeDetails()">
+          <i class="fas fa-times"></i>
+          Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

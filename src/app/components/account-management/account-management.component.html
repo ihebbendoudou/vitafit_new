@@ -1,0 +1,126 @@
+<div class="account-management-container">
+  <h1>Gérer mon compte</h1>
+  
+  <div class="card profile-card">
+    <div class="card-header">
+      <h2>Informations personnelles</h2>
+    </div>
+    <div class="card-body">
+      <form [formGroup]="profileForm" (ngSubmit)="onSubmitProfile()">
+        <!-- Message de succès/erreur -->
+        <div *ngIf="successMessage" class="alert alert-success">
+          {{ successMessage }}
+        </div>
+        <div *ngIf="errorMessage" class="alert alert-danger">
+          {{ errorMessage }}
+        </div>
+
+        <!-- Nom -->
+        <div class="form-group">
+          <label for="nom">Nom</label>
+          <input type="text" id="nom" formControlName="nom" class="form-control" 
+                 [ngClass]="{ 'is-invalid': submitted && f['nom'].errors }" />
+          <div *ngIf="submitted && f['nom'].errors" class="invalid-feedback">
+            <div *ngIf="f['nom'].errors['required']">Le nom est requis</div>
+          </div>
+        </div>
+
+        <!-- Prénom -->
+        <div class="form-group">
+          <label for="prenom">Prénom</label>
+          <input type="text" id="prenom" formControlName="prenom" class="form-control" 
+                 [ngClass]="{ 'is-invalid': submitted && f['prenom'].errors }" />
+          <div *ngIf="submitted && f['prenom'].errors" class="invalid-feedback">
+            <div *ngIf="f['prenom'].errors['required']">Le prénom est requis</div>
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" formControlName="email" class="form-control" 
+                 [ngClass]="{ 'is-invalid': submitted && f['email'].errors }" />
+          <div *ngIf="submitted && f['email'].errors" class="invalid-feedback">
+            <div *ngIf="f['email'].errors['required']">L'email est requis</div>
+            <div *ngIf="f['email'].errors['email']">L'email doit être une adresse valide</div>
+          </div>
+        </div>
+
+        <!-- Téléphone -->
+        <div class="form-group">
+          <label for="telephone">Téléphone</label>
+          <input type="tel" id="telephone" formControlName="telephone" class="form-control" 
+                 [ngClass]="{ 'is-invalid': submitted && f['telephone'].errors }" />
+          <div *ngIf="submitted && f['telephone'].errors" class="invalid-feedback">
+            <div *ngIf="f['telephone'].errors['required']">Le numéro de téléphone est requis</div>
+          </div>
+        </div>
+
+        <!-- Bouton de soumission -->
+        <div class="form-group">
+          <button type="submit" class="btn btn-primary" [disabled]="loading">
+            <span *ngIf="loading" class="spinner-border spinner-border-sm mr-1"></span>
+            Mettre à jour le profil
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card password-card">
+    <div class="card-header">
+      <h2>Changer le mot de passe</h2>
+    </div>
+    <div class="card-body">
+      <form [formGroup]="passwordForm" (ngSubmit)="onSubmitPassword()">
+        <!-- Message de succès/erreur -->
+        <div *ngIf="passwordSuccessMessage" class="alert alert-success">
+          {{ passwordSuccessMessage }}
+        </div>
+        <div *ngIf="passwordErrorMessage" class="alert alert-danger">
+          {{ passwordErrorMessage }}
+        </div>
+
+        <!-- Mot de passe actuel -->
+        <div class="form-group">
+          <label for="currentPassword">Mot de passe actuel</label>
+          <input type="password" id="currentPassword" formControlName="currentPassword" class="form-control" 
+                 [ngClass]="{ 'is-invalid': passwordSubmitted && p['currentPassword'].errors }" />
+          <div *ngIf="passwordSubmitted && p['currentPassword'].errors" class="invalid-feedback">
+            <div *ngIf="p['currentPassword'].errors['required']">Le mot de passe actuel est requis</div>
+          </div>
+        </div>
+
+        <!-- Nouveau mot de passe -->
+        <div class="form-group">
+          <label for="newPassword">Nouveau mot de passe</label>
+          <input type="password" id="newPassword" formControlName="newPassword" class="form-control" 
+                 [ngClass]="{ 'is-invalid': passwordSubmitted && p['newPassword'].errors }" />
+          <div *ngIf="passwordSubmitted && p['newPassword'].errors" class="invalid-feedback">
+            <div *ngIf="p['newPassword'].errors['required']">Le nouveau mot de passe est requis</div>
+            <div *ngIf="p['newPassword'].errors['minlength']">Le mot de passe doit contenir au moins 6 caractères</div>
+          </div>
+        </div>
+
+        <!-- Confirmation du nouveau mot de passe -->
+        <div class="form-group">
+          <label for="confirmPassword">Confirmer le nouveau mot de passe</label>
+          <input type="password" id="confirmPassword" formControlName="confirmPassword" class="form-control" 
+                 [ngClass]="{ 'is-invalid': passwordSubmitted && p['confirmPassword'].errors }" />
+          <div *ngIf="passwordSubmitted && p['confirmPassword'].errors" class="invalid-feedback">
+            <div *ngIf="p['confirmPassword'].errors['required']">La confirmation du mot de passe est requise</div>
+            <div *ngIf="p['confirmPassword'].errors['mustMatch']">Les mots de passe ne correspondent pas</div>
+          </div>
+        </div>
+
+        <!-- Bouton de soumission -->
+        <div class="form-group">
+          <button type="submit" class="btn btn-primary" [disabled]="loading">
+            <span *ngIf="loading" class="spinner-border spinner-border-sm mr-1"></span>
+            Changer le mot de passe
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

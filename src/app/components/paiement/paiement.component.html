@@ -1,0 +1,289 @@
+<div class="container-fluid py-4">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Gestion des Paiements</h5>
+      <button class="btn btn-primary" (click)="openAddForm()" *ngIf="!showForm"><i class="fas fa-plus"></i> Ajouter un paiement</button>
+    </div>
+    
+    <!-- Onglets de navigation -->
+    <div class="card-header modern-tabs">
+      <ul class="nav nav-pills justify-content-start">
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'tous'" (click)="setActiveTab('tous')" href="javascript:void(0)">
+            Tous les paiements
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'payes'" (click)="setActiveTab('payes')" href="javascript:void(0)">
+            Abonnements payés
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'non-payes'" (click)="setActiveTab('non-payes')" href="javascript:void(0)">
+            Abonnements non payés
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'expiration-jour'" (click)="setActiveTab('expiration-jour')" href="javascript:void(0)">
+            Expirations du jour
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'analyse'" (click)="setActiveTab('analyse')" href="javascript:void(0)">
+            <i class="fas fa-chart-bar"></i> Analyse
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="card-body">
+      <!-- Messages d'alerte -->
+      <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show" role="alert">
+        {{ errorMessage }}
+        <button type="button" class="btn-close" (click)="errorMessage = ''" aria-label="Close"></button>
+      </div>
+
+      <div *ngIf="successMessage" class="alert alert-success alert-dismissible fade show" role="alert">
+        {{ successMessage }}
+        <button type="button" class="btn-close" (click)="successMessage = ''" aria-label="Close"></button>
+      </div>
+      
+      <!-- Composant d'analyse -->
+      <div *ngIf="activeTab === 'analyse'">
+        <app-analyse-paiement></app-analyse-paiement>
+      </div>
+
+      <!-- Formulaire d'ajout/édition de paiement -->
+      <div *ngIf="showForm && activeTab !== 'analyse'" class="mb-4">
+        <h5 class="card-title">Enregistrer un paiement</h5>
+        <form [formGroup]="paiementForm" (ngSubmit)="onSubmit()">
+          <div class="mb-3">
+            <label for="abonnement_id" class="form-label">Abonnement</label>
+            <select id="abonnement_id" formControlName="abonnement_id" class="form-select" [class.is-invalid]="paiementForm.get('abonnement_id')?.invalid && paiementForm.get('abonnement_id')?.touched">
+              <option value="">Sélectionnez un abonnement</option>
+              <option *ngFor="let abonnement of abonnementsNonPaies" [value]="abonnement.abonnement_id">
+                {{ abonnement.type_abonnement || 'Type non spécifié' }} - {{ (abonnement.nom_utilisateur && abonnement.prenom_utilisateur) ? (abonnement.nom_utilisateur + ' ' + abonnement.prenom_utilisateur) : 'Utilisateur non spécifié' }}
+              </option>
+            </select>
+            <div class="invalid-feedback" *ngIf="paiementForm.get('abonnement_id')?.invalid && paiementForm.get('abonnement_id')?.touched">
+              Veuillez sélectionner un abonnement
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="montant" class="form-label">Montant (dt)</label>
+            <input type="number" id="montant" class="form-control" [value]="selectedAbonnementPrix" disabled />
+            <small class="text-muted">Le montant est automatiquement défini selon le type d'abonnement</small>
+          </div>
+
+          <div class="mb-3">
+            <label for="mode_paiement" class="form-label">Mode de paiement</label>
+            <select id="mode_paiement" formControlName="mode_paiement" class="form-select" [class.is-invalid]="paiementForm.get('mode_paiement')?.invalid && paiementForm.get('mode_paiement')?.touched">
+              <option *ngFor="let mode of modesPaiement" [value]="mode">{{ mode }}</option>
+            </select>
+            <div class="invalid-feedback" *ngIf="paiementForm.get('mode_paiement')?.invalid && paiementForm.get('mode_paiement')?.touched">
+              Veuillez sélectionner un mode de paiement
+            </div>
+          </div>
+
+          <!-- Nouveau champ pour le renouvellement -->
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              <input 
+                class="form-check-input" 
+                type="checkbox" 
+                id="isRenewal" 
+                formControlName="is_renewal"
+              >
+              <label class="form-check-label" for="isRenewal">
+                Renouveler l'abonnement
+              </label>
+            </div>
+            <small class="text-muted">
+              Cochez cette case pour renouveler l'abonnement en utilisant la date actuelle comme nouvelle date de début
+            </small>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary" [disabled]="paiementForm.invalid || loading">
+              <span *ngIf="loading" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+              <i class="fas fa-save"></i> Enregistrer
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="cancelForm()">
+              <i class="fas fa-times"></i> Annuler
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Contrôles d'exportation PDF -->
+      <div *ngIf="activeTab === 'tous' || activeTab === 'payes'" class="mb-3 export-controls">
+        <div class="row align-items-end">
+          <div class="col-md-3">
+            <label for="selectedMonth" class="form-label">Mois</label>
+            <select id="selectedMonth" [(ngModel)]="selectedMonth" class="form-select">
+              <option [value]="1">Janvier</option>
+              <option [value]="2">Février</option>
+              <option [value]="3">Mars</option>
+              <option [value]="4">Avril</option>
+              <option [value]="5">Mai</option>
+              <option [value]="6">Juin</option>
+              <option [value]="7">Juillet</option>
+              <option [value]="8">Août</option>
+              <option [value]="9">Septembre</option>
+              <option [value]="10">Octobre</option>
+              <option [value]="11">Novembre</option>
+              <option [value]="12">Décembre</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label for="selectedYear" class="form-label">Année</label>
+            <select id="selectedYear" [(ngModel)]="selectedYear" class="form-select">
+              <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <button class="btn btn-success" (click)="exportPaiementsPdf()">
+              <i class="fas fa-file-pdf"></i> Exporter PDF
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tableau des paiements -->
+      <div class="table-responsive" *ngIf="activeTab === 'tous' && paiements.length > 0">
+        <table class="table table-striped table-hover">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Abonnement</th>
+              <th>Utilisateur</th>
+              <th>Montant</th>
+              <th>Date de paiement</th>
+              <th>Mode de paiement</th>
+              <th>État</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let paiement of paiements">
+              <td>{{ paiement.id }}</td>
+              <td>{{ getAbonnementInfo(paiement.abonnement_id) }}</td>
+              <td>{{ getUserNameByAbonnementId(paiement.abonnement_id) }}</td>
+              <td>{{ paiement.montant }} dt</td>
+              <td>{{ formatDate(paiement.date_paiement) }}</td>
+              <td>{{ paiement.mode_paiement }}</td>
+              <td><span class="badge bg-success">Payé</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Tableau des abonnements payés -->
+      <div class="table-responsive" *ngIf="activeTab === 'payes' && abonnementsPaies.length > 0">
+        <table class="table table-striped table-hover">
+          <thead>
+            <tr>
+              <th>ID Abonnement</th>
+              <th>Type d'abonnement</th>
+              <th>Utilisateur</th>
+              <th>Date début</th>
+              <th>Date fin</th>
+              <th>Montant payé</th>
+              <th>Date de paiement</th>
+              <th>État</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let abonnement of abonnementsPaies" [ngClass]="getRowClass(abonnement.date_fin)">
+              <td>{{ abonnement.abonnement_id }}</td>
+              <td>{{ abonnement.type_abonnement || 'Non spécifié' }}</td>
+              <td>{{ (abonnement.nom_utilisateur && abonnement.prenom_utilisateur) ? (abonnement.nom_utilisateur + ' ' + abonnement.prenom_utilisateur) : 'Utilisateur non spécifié' }}</td>
+              <td>{{ formatDate(abonnement.date_debut) }}</td>
+              <td>{{ formatDate(abonnement.date_fin) }}</td>
+              <td>{{ abonnement.montant }} dt</td>
+              <td>{{ formatDate(abonnement.date_paiement) }}</td>
+              <td><span class="badge bg-success">Payé</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Tableau des abonnements non payés -->
+      <div class="table-responsive" *ngIf="activeTab === 'non-payes' && abonnementsNonPaies.length > 0">
+        <table class="table table-striped table-hover">
+          <thead>
+            <tr>
+              <th>ID Abonnement</th>
+              <th>Type d'abonnement</th>
+              <th>Utilisateur</th>
+              <th>Date début</th>
+              <th>Date fin</th>
+              <th>Coach</th>
+              <th>État</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let abonnement of abonnementsNonPaies" [ngClass]="getRowClass(abonnement.date_fin)">
+              <td>{{ abonnement.abonnement_id }}</td>
+              <td>{{ abonnement.type_abonnement || 'Non spécifié' }}</td>
+              <td>{{ (abonnement.nom_utilisateur && abonnement.prenom_utilisateur) ? (abonnement.nom_utilisateur + ' ' + abonnement.prenom_utilisateur) : 'Utilisateur non spécifié' }}</td>
+              <td>{{ formatDate(abonnement.date_debut) }}</td>
+              <td>{{ formatDate(abonnement.date_fin) }}</td>
+              <td>{{ abonnement.nom_coach ? abonnement.nom_coach + ' ' + abonnement.prenom_coach : 'Aucun coach' }}</td>
+              <td><span class="badge bg-danger">Non payé</span></td>
+              <td>
+                <button class="btn btn-sm btn-primary" (click)="openAddFormWithAbonnement(abonnement)"><i class="fas fa-credit-card"></i> Payer</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Tableau des abonnements expirant aujourd'hui -->
+      <div class="table-responsive" *ngIf="activeTab === 'expiration-jour' && abonnementsExpirantAujourdhui.length > 0">
+        <table class="table table-striped table-hover">
+          <thead>
+            <tr>
+              <th>ID Abonnement</th>
+              <th>Type d'abonnement</th>
+              <th>Utilisateur</th>
+              <th>Date début</th>
+              <th>Date fin</th>
+              <th>Coach</th>
+              <th>État</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let abonnement of abonnementsExpirantAujourdhui" class="expired-row">
+              <td>{{ abonnement.abonnement_id }}</td>
+              <td>{{ abonnement.type_abonnement || 'Non spécifié' }}</td>
+              <td>{{ (abonnement.nom_utilisateur && abonnement.prenom_utilisateur) ? (abonnement.nom_utilisateur + ' ' + abonnement.prenom_utilisateur) : 'Utilisateur non spécifié' }}</td>
+              <td>{{ formatDate(abonnement.date_debut) }}</td>
+              <td>{{ formatDate(abonnement.date_fin) }}</td>
+              <td>{{ abonnement.nom_coach ? abonnement.nom_coach + ' ' + abonnement.prenom_coach : 'Aucun coach' }}</td>
+              <td><span class="badge" [ngClass]="{'bg-danger': !abonnement.est_paye, 'bg-success': abonnement.est_paye}">{{ abonnement.est_paye ? 'Payé' : 'Non payé' }}</span></td>
+              <td>
+                <button *ngIf="!abonnement.est_paye" class="btn btn-sm btn-primary" (click)="openAddFormWithAbonnement(abonnement)"><i class="fas fa-credit-card"></i> Payer</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Message si aucun abonnement n'expire aujourd'hui -->
+      <div class="empty-message" *ngIf="activeTab === 'expiration-jour' && abonnementsExpirantAujourdhui.length === 0">
+        <i class="fas fa-check-circle text-success"></i>
+        <p>Aucun abonnement n'expire aujourd'hui.</p>
+      </div>
+      <!-- Message si aucun élément à afficher -->
+      <div class="empty-message" *ngIf="(activeTab === 'tous' && paiements.length === 0) || 
+                                          (activeTab === 'payes' && abonnementsPaies.length === 0) || 
+                                          (activeTab === 'non-payes' && abonnementsNonPaies.length === 0)">
+        <i class="fas fa-exclamation-circle"></i>
+        <p>Aucun élément à afficher.</p>
+      </div>
+    </div>
+  </div>
+</div>

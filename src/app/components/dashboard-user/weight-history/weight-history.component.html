@@ -1,0 +1,309 @@
+<div class="weight-history-container">
+  <div class="header">
+    <h2><i class="fas fa-weight"></i> {{ isPublicView ? 'Historique de Poids Partagé' : 'Mon Historique de Poids' }}</h2>
+    <p class="subtitle" *ngIf="!isPublicView">Suivez l'évolution de votre poids au fil du temps</p>
+    <p class="subtitle" *ngIf="isPublicView && userInfo">Historique de poids de {{ userInfo.nom }} {{ userInfo.prenom }}</p>
+    <div class="header-actions" *ngIf="!isPublicView">
+      <button 
+        (click)="generateShareLink()" 
+        class="share-btn"
+        [disabled]="shareLoading"
+        title="Partager mon historique avec mon coach/médecin"
+      >
+        <i class="fas fa-share-alt" *ngIf="!shareLoading"></i>
+        <i class="fas fa-spinner fa-spin" *ngIf="shareLoading"></i>
+        {{ shareLoading ? 'Génération...' : 'Partager' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Formulaire d'ajout de poids -->
+  <div class="add-weight-section" *ngIf="!isPublicView">
+    <div class="add-weight-card">
+      <h3><i class="fas fa-plus-circle"></i> Ajouter un nouveau poids</h3>
+      <div class="add-weight-form">
+        <div class="form-row">
+          <div class="input-group">
+            <label for="newWeight">Poids (kg)</label>
+            <input 
+              type="number" 
+              id="newWeight"
+              [(ngModel)]="newWeight" 
+              placeholder="Entrez votre poids"
+              step="0.1"
+              min="0"
+              max="500"
+              class="weight-input"
+            >
+          </div>
+          
+          <div class="input-group">
+            <label for="photos">Photos de progression (optionnel)</label>
+            <div class="photo-upload-wrapper">
+              <input 
+                type="file" 
+                id="photos"
+                (change)="onPhotosSelected($event)"
+                accept="image/*"
+                multiple
+                class="photo-input-hidden"
+              >
+              <label for="photos" class="photo-input-custom">
+                <div class="upload-icon">
+                  <i class="fas fa-camera"></i>
+                </div>
+                <div class="upload-text">
+                  <span class="upload-title">Ajouter des photos</span>
+                  <span class="upload-subtitle">Cliquez ou glissez-déposez vos images</span>
+                </div>
+                <div class="upload-formats">
+                  <small>JPG, PNG, GIF - Max 5MB par photo</small>
+                </div>
+              </label>
+            </div>
+            <div class="photo-info">
+              <small><i class="fas fa-images"></i> {{ selectedPhotos.length }}/{{ maxPhotos }} photos sélectionnées</small>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Prévisualisation des photos sélectionnées -->
+        <div class="photo-preview" *ngIf="selectedPhotos.length > 0">
+          <h4><i class="fas fa-images"></i> Aperçu des photos</h4>
+          <div class="preview-grid">
+            <div class="preview-item" *ngFor="let photo of selectedPhotos; let i = index">
+              <img [src]="photo.preview" [alt]="'Photo ' + (i + 1)">
+              <button class="remove-photo-btn" (click)="removePhoto(i)" title="Supprimer cette photo">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <button 
+          (click)="addWeight()" 
+          [disabled]="loading || !newWeight"
+          class="add-btn"
+        >
+          <i class="fas fa-save"></i>
+          {{ loading ? 'Ajout...' : 'Ajouter' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Messages d'erreur et de succès -->
+  <div class="messages" *ngIf="error || success">
+    <div class="alert alert-error" *ngIf="error">
+      <i class="fas fa-exclamation-triangle"></i>
+      {{ error }}
+    </div>
+    <div class="alert alert-success" *ngIf="success">
+      <i class="fas fa-check-circle"></i>
+      {{ success }}
+    </div>
+  </div>
+
+  <!-- Statistiques rapides -->
+  <div class="stats-section" *ngIf="weights.length > 0">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-weight-hanging"></i>
+        </div>
+        <div class="stat-content">
+          <h4>Poids Actuel</h4>
+          <p class="stat-value">{{ weights[0]?.poids }} kg</p>
+        </div>
+      </div>
+      
+      <div class="stat-card" *ngIf="weights.length > 1">
+        <div class="stat-icon">
+          <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="stat-content">
+          <h4>Évolution</h4>
+          <p class="stat-value" [ngClass]="getWeightTrendClass()">{{ getWeightTrend() }}</p>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-calendar-alt"></i>
+        </div>
+        <div class="stat-content">
+          <h4>Dernière Pesée</h4>
+          <p class="stat-value">{{ formatDate(weights[0]?.date_enregistrement) }}</p>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-list-ol"></i>
+        </div>
+        <div class="stat-content">
+          <h4>Total Entrées</h4>
+          <p class="stat-value">{{ weights.length }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Liste des poids -->
+  <div class="weights-section">
+    <div class="section-header">
+      <h3><i class="fas fa-history"></i> Historique Complet</h3>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading" *ngIf="loading && weights.length === 0">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Chargement des données...</p>
+    </div>
+
+    <!-- Aucune donnée -->
+    <div class="no-data" *ngIf="!loading && weights.length === 0">
+      <i class="fas fa-weight"></i>
+      <h4>Aucun poids enregistré</h4>
+      <p>Commencez par ajouter votre premier poids ci-dessus.</p>
+    </div>
+
+    <!-- Liste des poids -->
+    <div class="weights-list" *ngIf="weights.length > 0">
+      <div class="weight-item" *ngFor="let weight of weights; let i = index">
+        <div class="weight-info">
+          <div class="weight-value">
+            <span class="value">{{ weight.poids }} kg</span>
+            <span class="trend" *ngIf="i < weights.length - 1" [ngClass]="{
+              'trend-up': weight.poids > weights[i + 1].poids,
+              'trend-down': weight.poids < weights[i + 1].poids,
+              'trend-stable': weight.poids === weights[i + 1].poids
+            }">
+              <i class="fas" [ngClass]="{
+                'fa-arrow-up': weight.poids > weights[i + 1].poids,
+                'fa-arrow-down': weight.poids < weights[i + 1].poids,
+                'fa-minus': weight.poids === weights[i + 1].poids
+              }"></i>
+              {{ i < weights.length - 1 ? (weight.poids - weights[i + 1].poids).toFixed(1) : '' }}
+            </span>
+          </div>
+          <div class="weight-date">
+            <i class="fas fa-calendar"></i>
+            {{ formatDate(weight.date_enregistrement) }}
+          </div>
+          
+          <!-- Photos miniatures -->
+          <div class="weight-photos" *ngIf="hasPhotos(weight)">
+            <div class="photos-header">
+              <i class="fas fa-camera"></i>
+              <span>{{ getPhotosCount(weight) }} photo(s)</span>
+            </div>
+            <div class="photos-thumbnails">
+              <img 
+                *ngFor="let photo of weight.photos?.slice(0, 3); let photoIndex = index" 
+                [src]="getPhotoUrl(photo)" 
+                [alt]="'Photo ' + (photoIndex + 1)"
+                class="thumbnail"
+                (click)="openPhotoModal(weight.photos || [])"
+              >
+              <div 
+                *ngIf="getPhotosCount(weight) > 3" 
+                class="more-photos"
+                (click)="openPhotoModal(weight.photos || [])"
+              >
+                +{{ getPhotosCount(weight) - 3 }}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="weight-actions">
+          <button 
+            (click)="deleteWeight(weight.id)" 
+            class="delete-btn"
+            title="Supprimer cette entrée"
+          >
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal pour afficher les photos -->
+  <div class="photo-modal" *ngIf="showPhotoModal" (click)="closePhotoModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fas fa-images"></i> Photos de progression</h3>
+        <button class="close-btn" (click)="closePhotoModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="photos-grid">
+          <div class="photo-item" *ngFor="let photo of selectedWeightPhotos; let i = index">
+            <img [src]="getPhotoUrl(photo)" [alt]="'Photo ' + (i + 1)">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de partage -->
+  <div class="share-modal" *ngIf="showShareModal" (click)="closeShareModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fas fa-share-alt"></i> Partager mon historique</h3>
+        <button class="close-btn" (click)="closeShareModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="share-info">
+          <p><i class="fas fa-info-circle"></i> Partagez votre historique de poids avec votre coach ou médecin de manière sécurisée.</p>
+          <p><strong>Le lien expire dans 7 jours</strong> et peut être révoqué à tout moment.</p>
+        </div>
+        
+        <div class="share-url-section" *ngIf="shareUrl">
+          <label>Lien de partage :</label>
+          <div class="url-input-group">
+            <input 
+              type="text" 
+              [value]="shareUrl" 
+              readonly 
+              class="share-url-input"
+            >
+            <button 
+              (click)="copyShareLink()" 
+              class="copy-btn"
+              title="Copier le lien"
+            >
+              <i class="fas fa-copy"></i>
+            </button>
+          </div>
+        </div>
+        
+        <div class="share-actions">
+          <button 
+            (click)="copyShareLink()" 
+            class="action-btn primary"
+            *ngIf="shareUrl"
+          >
+            <i class="fas fa-copy"></i>
+            Copier le lien
+          </button>
+          
+          <button 
+            (click)="revokeShareLink()" 
+            class="action-btn danger"
+            [disabled]="shareLoading"
+            *ngIf="shareUrl"
+          >
+            <i class="fas fa-ban" *ngIf="!shareLoading"></i>
+            <i class="fas fa-spinner fa-spin" *ngIf="shareLoading"></i>
+            {{ shareLoading ? 'Révocation...' : 'Révoquer le lien' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

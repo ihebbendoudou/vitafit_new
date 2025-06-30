@@ -1,0 +1,176 @@
+<div class="user-management-container">
+  <!-- Header Section -->
+  <div class="header">
+    <h1>Gestion des Utilisateurs</h1>
+    <div class="actions">
+      <button class="btn btn-primary" (click)="openAddForm()">
+        <i class="fas fa-plus"></i> Ajouter un utilisateur
+      </button>
+    </div>
+  </div>
+
+  <!-- Alert Messages -->
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    {{ errorMessage }}
+    <button type="button" class="close" (click)="errorMessage = ''">&times;</button>
+  </div>
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+    <button type="button" class="close" (click)="successMessage = ''">&times;</button>
+  </div>
+
+  <!-- Search Section -->
+  <div class="search-container">
+    <div class="search-box">
+      <input 
+        type="text" 
+        [(ngModel)]="searchQuery" 
+        placeholder="Rechercher par nom, email, téléphone..."
+        (keyup.enter)="searchUsers()"
+      >
+      <button class="search-btn" (click)="searchUsers()">
+        <i class="fas fa-search"></i>
+      </button>
+      <button *ngIf="searchQuery" class="reset-btn" (click)="resetSearch()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading Spinner -->
+  <div *ngIf="loading" class="loading-spinner">
+    <div class="spinner"></div>
+    <p>Chargement...</p>
+  </div>
+
+  <!-- User Form -->
+  <div *ngIf="showForm" class="user-form-container">
+    <div class="form-header">
+      <h2>{{ isEditing ? 'Modifier l\'utilisateur' : 'Ajouter un utilisateur' }}</h2>
+      <button class="close-btn" (click)="cancelForm()">&times;</button>
+    </div>
+    <form [formGroup]="userForm" (ngSubmit)="submitForm()">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="nom">Nom*</label>
+          <input type="text" id="nom" formControlName="nom" class="form-control" [class.is-invalid]="userForm.get('nom')?.invalid && userForm.get('nom')?.touched">
+          <div *ngIf="userForm.get('nom')?.invalid && userForm.get('nom')?.touched" class="invalid-feedback">
+            Le nom est requis
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="prenom">Prénom*</label>
+          <input type="text" id="prenom" formControlName="prenom" class="form-control" [class.is-invalid]="userForm.get('prenom')?.invalid && userForm.get('prenom')?.touched">
+          <div *ngIf="userForm.get('prenom')?.invalid && userForm.get('prenom')?.touched" class="invalid-feedback">
+            Le prénom est requis
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="email">Email*</label>
+          <input type="email" id="email" formControlName="email" class="form-control" [class.is-invalid]="userForm.get('email')?.invalid && userForm.get('email')?.touched">
+          <div *ngIf="userForm.get('email')?.invalid && userForm.get('email')?.touched" class="invalid-feedback">
+            <span *ngIf="userForm.get('email')?.errors?.['required']">L'email est requis</span>
+            <span *ngIf="userForm.get('email')?.errors?.['email']">Format d'email invalide</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="tel">Téléphone*</label>
+          <input type="tel" id="tel" formControlName="tel" class="form-control" [class.is-invalid]="userForm.get('tel')?.invalid && userForm.get('tel')?.touched">
+          <div *ngIf="userForm.get('tel')?.invalid && userForm.get('tel')?.touched" class="invalid-feedback">
+            Le téléphone est requis
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="adresse">Adresse*</label>
+        <input type="text" id="adresse" formControlName="adresse" class="form-control" [class.is-invalid]="userForm.get('adresse')?.invalid && userForm.get('adresse')?.touched">
+        <div *ngIf="userForm.get('adresse')?.invalid && userForm.get('adresse')?.touched" class="invalid-feedback">
+          L'adresse est requise
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="password">{{ isEditing ? 'Mot de passe (laisser vide pour ne pas changer)' : 'Mot de passe*' }}</label>
+          <input type="password" id="password" formControlName="password" class="form-control" [class.is-invalid]="userForm.get('password')?.invalid && userForm.get('password')?.touched">
+          <div *ngIf="userForm.get('password')?.invalid && userForm.get('password')?.touched" class="invalid-feedback">
+            <span *ngIf="userForm.get('password')?.errors?.['required']">Le mot de passe est requis</span>
+            <span *ngIf="userForm.get('password')?.errors?.['minlength']">Le mot de passe doit contenir au moins 6 caractères</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="role">Rôle*</label>
+          <select id="role" formControlName="role" class="form-control">
+            <option value="user">Utilisateur</option>
+            <option value="admin">Administrateur</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="image">URL de l'image (optionnel)</label>
+        <input type="text" id="image" formControlName="image" class="form-control">
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="cancelForm()">Annuler</button>
+        <button type="submit" class="btn btn-primary" [disabled]="userForm.invalid">{{ isEditing ? 'Mettre à jour' : 'Ajouter' }}</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Users Table -->
+  <div class="users-table-container" *ngIf="!loading">
+    <div *ngIf="filteredUsers.length === 0" class="no-results">
+      <p>Aucun utilisateur trouvé</p>
+    </div>
+    <table *ngIf="filteredUsers.length > 0" class="users-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nom</th>
+          <th>Prénom</th>
+          <th>Email</th>
+          <th>Téléphone</th>
+          <th>Adresse</th>
+          <th>Rôle</th>
+          <th>Programme</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let user of filteredUsers">
+          <td>{{ user.id }}</td>
+          <td>{{ user.nom }}</td>
+          <td>{{ user.prenom }}</td>
+          <td>{{ user.email }}</td>
+          <td>{{ user.tel }}</td>
+          <td>{{ user.adresse }}</td>
+          <td>
+            <span class="badge" [ngClass]="user.role === 'admin' ? 'badge-admin' : 'badge-user'">
+              {{ user.role === 'admin' ? 'Admin' : 'Utilisateur' }}
+            </span>
+          </td>
+          <td>
+            <span *ngIf="user.role !== 'admin'" class="badge" [ngClass]="user.hasProgramme ? 'badge-success' : 'badge-warning'">
+              {{ user.hasProgramme ? (user.programmeCount + ' programme(s)') : 'Aucun programme' }}
+            </span>
+            <span *ngIf="user.role === 'admin'" class="badge badge-secondary">N/A</span>
+          </td>
+          <td class="actions-cell">
+            <button class="action-btn edit-btn" (click)="openEditForm(user)" title="Modifier">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="action-btn delete-btn" (click)="deleteUser(user.id!)" title="Supprimer">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

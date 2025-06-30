@@ -1,0 +1,178 @@
+<div class="consultation-request-container">
+  <!-- Header -->
+  <div class="header">
+    <h2>
+      <i class="fas fa-calendar-plus"></i>
+      Demander une Consultation
+    </h2>
+    <p class="subtitle">Prenez rendez-vous avec un médecin de votre choix</p>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Chargement des médecins...</p>
+  </div>
+
+  <!-- Success Message -->
+  <div *ngIf="showSuccessMessage" class="alert alert-success">
+    <i class="fas fa-check-circle"></i>
+    {{ successMessage }}
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="showErrorMessage" class="alert alert-error">
+    <i class="fas fa-exclamation-triangle"></i>
+    {{ errorMessage }}
+  </div>
+
+  <!-- Consultation Form -->
+  <div *ngIf="!loading" class="consultation-form-container">
+    <form (ngSubmit)="onSubmit()" class="consultation-form">
+      
+      <!-- Objet de la consultation -->
+      <div class="form-group">
+        <label for="objet" class="required">Objet de la consultation</label>
+        <input 
+          type="text" 
+          id="objet" 
+          name="objet" 
+          [(ngModel)]="consultationData.objet" 
+          class="form-control" 
+          placeholder="Ex: Consultation générale, Suivi médical, etc."
+          required
+        >
+      </div>
+
+      <!-- Sélection de la spécialité -->
+      <div class="form-group">
+        <label for="specialite">Spécialité médicale</label>
+        <select 
+          id="specialite" 
+          name="specialite" 
+          [(ngModel)]="selectedSpecialite" 
+          (change)="onSpecialiteChange()" 
+          class="form-control"
+        >
+          <option value="">Toutes les spécialités</option>
+          <option *ngFor="let specialite of specialites" [value]="specialite">
+            {{ specialite }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Sélection du médecin -->
+      <div class="form-group">
+        <label for="medecin">Médecin (optionnel)</label>
+        <select 
+          id="medecin" 
+          name="medecin" 
+          [(ngModel)]="consultationData.medecin_id" 
+          class="form-control"
+        >
+          <option [value]="null">Aucune préférence</option>
+          <option *ngFor="let medecin of medecinsFiltres" [value]="medecin.id">
+            Dr. {{ medecin.nom }} {{ medecin.prenom }} - {{ medecin.specialite }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Date souhaitée -->
+      <div class="form-group">
+        <label for="date_demande" class="required">Date et heure souhaitées</label>
+        <input 
+          type="datetime-local" 
+          id="date_demande" 
+          name="date_demande" 
+          [(ngModel)]="consultationData.date_demande" 
+          class="form-control" 
+          required
+        >
+      </div>
+
+
+
+      <!-- Informations importantes -->
+      <div class="info-box">
+        <div class="info-header">
+          <i class="fas fa-info-circle"></i>
+          <h4>Informations importantes</h4>
+        </div>
+        <ul>
+          <li>Votre demande sera examinée par notre équipe médicale</li>
+          <li>Vous recevrez une confirmation par email dans les 24h</li>
+          <li>En cas d'urgence, contactez directement les services d'urgence</li>
+          <li>Les consultations sont soumises à disponibilité des médecins</li>
+        </ul>
+      </div>
+
+      <!-- Boutons d'action -->
+      <div class="form-actions">
+        <button 
+          type="button" 
+          (click)="resetForm()" 
+          class="btn btn-secondary"
+          [disabled]="isSubmitting"
+        >
+          <i class="fas fa-undo"></i>
+          Réinitialiser
+        </button>
+        
+        <button 
+          type="submit" 
+          class="btn btn-primary"
+          [disabled]="isSubmitting || !isFormValid()"
+        >
+          <i class="fas fa-spinner fa-spin" *ngIf="isSubmitting"></i>
+          <i class="fas fa-paper-plane" *ngIf="!isSubmitting"></i>
+          {{ isSubmitting ? 'Envoi en cours...' : 'Envoyer la demande' }}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Médecins disponibles -->
+  <div *ngIf="!loading && medecins.length > 0" class="medecins-section">
+    <h3>
+      <i class="fas fa-user-md"></i>
+      Médecins disponibles
+      <span class="count">({{ medecinsFiltres.length }})</span>
+    </h3>
+    
+    <div class="medecins-grid">
+      <div *ngFor="let medecin of medecinsFiltres" class="medecin-card">
+        <div class="medecin-header">
+          <div class="medecin-avatar">
+            <i class="fas fa-user-md"></i>
+          </div>
+          <div class="medecin-info">
+            <h4>Dr. {{ medecin.nom }} {{ medecin.prenom }}</h4>
+            <span class="specialite">{{ medecin.specialite }}</span>
+          </div>
+        </div>
+        
+        <div class="medecin-contact">
+          <div class="contact-item" *ngIf="medecin.email">
+            <i class="fas fa-envelope"></i>
+            <span>{{ medecin.email }}</span>
+          </div>
+          <div class="contact-item" *ngIf="medecin.telephone">
+            <i class="fas fa-phone"></i>
+            <span>{{ medecin.telephone }}</span>
+          </div>
+        </div>
+        
+        <button 
+          type="button" 
+          (click)="consultationData.medecin_id = medecin.id" 
+          class="btn-select-medecin"
+          [class.selected]="consultationData.medecin_id === medecin.id"
+        >
+          <i class="fas fa-check" *ngIf="consultationData.medecin_id === medecin.id"></i>
+          <i class="fas fa-plus" *ngIf="consultationData.medecin_id !== medecin.id"></i>
+          {{ consultationData.medecin_id === medecin.id ? 'Sélectionné' : 'Sélectionner' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,954 @@
+<div class="home-container">
+  <!-- Header -->
+  <app-navbar 
+    brandName="VitaFit"
+    currentPage="home"
+    [showCartIcon]="true"
+    [showAuthButtons]="true"
+    (cartClick)="toggleCartModal()"
+    (menuToggle)="onMenuToggle()">
+  </app-navbar>
+  <!-- Hero Section -->
+  <section id="hero" class="hero-section">
+    <div class="hero-content">
+      <div class="hero-text">
+        <h1 class="hero-title">VitaFit</h1>
+        <p class="hero-subtitle">Votre plateforme complète de suivi santé et fitness</p>
+        <p class="hero-description">
+          Connectez-vous avec des professionnels de santé, suivez vos progrès et atteignez vos objectifs de bien-être
+        </p>
+        <div class="hero-buttons">
+          <button class="btn btn-primary" (click)="navigateToLogin()">Commencer maintenant</button>
+          <button class="btn btn-info">En savoir plus</button>
+        </div>
+      </div>
+      <div class="hero-image">
+        <div class="floating-card card-1">
+          <i class="fas fa-heartbeat"></i>
+          <span>Suivi médical</span>
+        </div>
+        <div class="floating-card card-2">
+          <i class="fas fa-dumbbell"></i>
+          <span>Programmes fitness</span>
+        </div>
+        <div class="floating-card card-3">
+          <i class="fas fa-chart-line"></i>
+          <span>Analyse des progrès</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section id="features" class="features-section">
+    <div class="container">
+      <h2 class="section-title">Fonctionnalités principales</h2>
+      <div class="features-grid">
+        <div class="feature-card" *ngFor="let feature of features">
+          <div class="feature-icon">
+            <i [class]="feature.icon"></i>
+          </div>
+          <h3>{{ feature.title }}</h3>
+          <p>{{ feature.description }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Recipes Section -->
+  <section id="recipes" class="recipes-section">
+    <div class="container">
+      <h2 class="section-title">Nos Recettes</h2>
+      
+      <!-- Search Bar -->
+      <div class="search-container">
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input 
+            type="text" 
+            placeholder="Rechercher une recette..."
+            [(ngModel)]="searchTerm"
+            (input)="searchRecipes()"
+            class="search-input"
+          >
+        </div>
+      </div>
+
+      <!-- Recipes Grid -->
+     <!-- Recipes Grid -->
+     <div class="recipes-grid">
+      <div class="recipe-card" *ngFor="let recipe of filteredRecipes" (click)="viewRecipe(recipe)">
+        <div class="recipe-image-container">
+          <img
+            *ngIf="recipe.main_image; else noImage"
+            [src]="getImageUrl(recipe.main_image)"
+            [alt]="recipe.title"
+            class="recipe-image"
+            (error)="onImageError($event)"
+          />
+          <ng-template #noImage>
+            <div class="recipe-placeholder">
+              <i class="fas fa-utensils"></i>
+            </div>
+          </ng-template>
+          <div class="recipe-overlay">
+            <span class="calories-badge">{{ recipe.calories }} cal</span>
+          </div>
+        </div>
+        <div class="recipe-content">
+          <h3 class="recipe-title">{{ recipe.title }}</h3>
+          <p class="recipe-description">{{ recipe.description }}</p>
+        </div>
+      </div>
+    </div>
+    
+      <!-- Empty State -->
+      <div *ngIf="filteredRecipes.length === 0" class="empty-state">
+        <i class="fas fa-search"></i>
+        <h3>Aucune recette trouvée</h3>
+        <p>Essayez de modifier vos critères de recherche</p>
+      </div>
+
+      <!-- View All Recipes Button -->
+      <div class="recipes-actions">
+        <button class="btn btn-primary" (click)="navigateToAllRecipes()">
+          <i class="fas fa-list"></i>
+          Voir toutes les recettes
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Recipe Modal -->
+  <div *ngIf="showRecipeModal && selectedRecipe" class="recipe-modal-overlay" (click)="closeRecipeModal()">
+    <div class="recipe-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ selectedRecipe.title }}</h2>
+        <button class="close-btn" (click)="closeRecipeModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-content">
+        <div class="recipe-image-section">
+          <!-- Carrousel d'images -->
+          <div class="image-carousel" *ngIf="selectedRecipeImages.length > 0; else noModalImage">
+            <div class="carousel-container">
+              <img 
+                [src]="getImageUrl(selectedRecipeImages[currentImageIndex].image_url)" 
+                [alt]="selectedRecipe.title"
+                class="modal-recipe-image"
+                (error)="onImageError($event)"
+              >
+              
+              <!-- Boutons de navigation -->
+              <button 
+                *ngIf="selectedRecipeImages.length > 1"
+                class="carousel-btn prev-btn" 
+                (click)="previousImage()"
+                aria-label="Image précédente"
+              >
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              
+              <button 
+                *ngIf="selectedRecipeImages.length > 1"
+                class="carousel-btn next-btn" 
+                (click)="nextImage()"
+                aria-label="Image suivante"
+              >
+                <i class="fas fa-chevron-right"></i>
+              </button>
+              
+              <!-- Indicateurs de pagination -->
+              <div class="carousel-indicators" *ngIf="selectedRecipeImages.length > 1">
+                <button 
+                  *ngFor="let image of selectedRecipeImages; let i = index"
+                  class="indicator"
+                  [class.active]="i === currentImageIndex"
+                  (click)="goToImage(i)"
+                  [attr.aria-label]="'Aller à l\'image ' + (i + 1)"
+                ></button>
+              </div>
+              
+              <!-- Compteur d'images -->
+              <div class="image-counter" *ngIf="selectedRecipeImages.length > 1">
+                {{ currentImageIndex + 1 }} / {{ selectedRecipeImages.length }}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Fallback si pas d'images -->
+          <ng-template #noModalImage>
+            <div class="modal-recipe-placeholder">
+              <i class="fas fa-utensils"></i>
+            </div>
+          </ng-template>
+        </div>
+        <div class="recipe-details">
+          <div class="recipe-info">
+            <span class="calories-info">
+              <i class="fas fa-fire"></i>
+              {{ selectedRecipe.calories }} calories
+            </span>
+            <span class="date-info">
+              <i class="fas fa-calendar"></i>
+              {{ selectedRecipe.created_at | date:'dd/MM/yyyy' }}
+            </span>
+          </div>
+          <div class="recipe-description-full">
+            <h3>Description</h3>
+            <p>{{ selectedRecipe.description }}</p>
+          </div>
+          <div class="recipe-ingredients">
+            <h3>Ingrédients</h3>
+            <ul>
+              <li *ngFor="let ingredient of selectedRecipe.ingredients.split('\n'); let i = index">
+                <span class="ingredient-number">{{ i + 1 }}.</span> {{ ingredient.replace('//', '').trim() }}
+              </li>
+            </ul>
+          </div>
+          <div class="recipe-steps">
+            <h3>Étapes de préparation</h3>
+            <ol>
+              <li *ngFor="let step of selectedRecipe.steps.split('\n'); let i = index">
+                <span class="step-number">Étape {{ i + 1 }}:</span> {{ step.replace('//', '').trim() }}
+              </li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Products Section -->
+  <section id="products" class="products-section">
+    <div class="container">
+      <h2 class="section-title">Nos Produits</h2>
+      <p class="section-subtitle">Découvrez notre sélection de produits pour votre bien-être</p>
+      
+      <!-- Grille de 8 produits vedettes -->
+      <div class="featured-products" *ngIf="!showAllProducts">
+        <div class="products-grid">
+          <div class="product-card" *ngFor="let produit of featuredProduits">
+            <div class="product-image">
+              <img [src]="getProductImageUrl(produit)" [alt]="produit.nom" (error)="onImageError($event)">
+              <div class="product-overlay">
+                <button class="btn btn-primary" (click)="addToCart(produit)" [disabled]="produit.quantite <= 0">
+                  <i class="fas fa-shopping-cart"></i>
+                  {{ produit.quantite > 0 ? 'Ajouter au panier' : 'Rupture de stock' }}
+                </button>
+              </div>
+            </div>
+            <div class="product-info">
+              <h3 class="product-title">
+                <a [routerLink]="['/product', produit.id]" class="product-link">{{ produit.nom }}</a>
+              </h3>
+              <p class="product-description">{{ produit.description }}</p>
+              <div class="product-meta">
+                <span class="product-category">{{ getCategoryName(produit.categorie_id) }}</span>
+                <span class="product-stock" [class.out-of-stock]="produit.quantite <= 0">
+                  {{ produit.quantite > 0 ? produit.quantite + ' en stock' : 'Rupture de stock' }}
+                </span>
+              </div>
+              <div class="product-footer">
+                <span class="product-price">{{ produit.prix }}dt</span>
+                <div class="product-actions" *ngIf="produit.quantite > 0">
+                  <div class="quantity-controls" *ngIf="isInCart(produit.id)">
+                    <button (click)="updateCartQuantity(produit.id, getQuantityInCart(produit.id) - 1)">
+                      <i class="fas fa-minus"></i>
+                    </button>
+                    <span>{{ getQuantityInCart(produit.id) }}</span>
+                    <button (click)="updateCartQuantity(produit.id, getQuantityInCart(produit.id) + 1)">
+                      <i class="fas fa-plus"></i>
+                    </button>
+                  </div>
+                  <button class="btn btn-sm btn-primary" (click)="addToCart(produit)" *ngIf="!isInCart(produit.id)">
+                    <i class="fas fa-cart-plus"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="products-cta">
+          <button class="btn btn-outline-primary btn-large" (click)="toggleProductsView()">
+            Voir tous les produits
+            <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Interface pour tous les produits -->
+      <div class="all-products" *ngIf="showAllProducts" id="all-products">
+        <div class="products-header">
+          <button class="btn btn-secondary" (click)="toggleProductsView()">
+            <i class="fas fa-arrow-left"></i>
+            Retour à la sélection
+          </button>
+          
+          <!-- Filtres et recherche -->
+          <div class="products-filters">
+            <div class="search-box">
+              <i class="fas fa-search"></i>
+              <input 
+                type="text" 
+                placeholder="Rechercher un produit..."
+                [(ngModel)]="productSearchTerm"
+                (input)="searchProducts()"
+                class="search-input"
+              >
+            </div>
+            
+            <div class="category-filters">
+              <button 
+                class="filter-btn"
+                [class.active]="selectedCategory === null"
+                (click)="filterProductsByCategory(null)"
+              >
+                Toutes les catégories
+              </button>
+              <button 
+                *ngFor="let category of categories"
+                class="filter-btn"
+                [class.active]="selectedCategory === category.id"
+                (click)="filterProductsByCategory(category.id)"
+              >
+                {{ category.nom }}
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Grille de tous les produits -->
+        <div class="products-grid all-products-grid">
+          <div class="product-card" *ngFor="let produit of filteredProduits">
+            <div class="product-image">
+              <img [src]="getProductImageUrl(produit)" [alt]="produit.nom" (error)="onImageError($event)">
+              <div class="product-overlay">
+                <button class="btn btn-primary" (click)="addToCart(produit)" [disabled]="produit.quantite <= 0">
+                  <i class="fas fa-shopping-cart"></i>
+                  {{ produit.quantite > 0 ? 'Ajouter au panier' : 'Rupture de stock' }}
+                </button>
+              </div>
+            </div>
+            <div class="product-info">
+              <h3 class="product-title">
+                <a [routerLink]="['/product', produit.id]" class="product-link">{{ produit.nom }}</a>
+              </h3>
+              <p class="product-description">{{ produit.description }}</p>
+              <div class="product-meta">
+                <span class="product-category">{{ getCategoryName(produit.categorie_id) }}</span>
+                <span class="product-stock" [class.out-of-stock]="produit.quantite <= 0">
+                  {{ produit.quantite > 0 ? produit.quantite + ' en stock' : 'Rupture de stock' }}
+                </span>
+              </div>
+              <div class="product-footer">
+                <span class="product-price">{{ produit.prix }}dt</span>
+                <div class="product-actions" *ngIf="produit.quantite > 0">
+                  <div class="quantity-controls" *ngIf="isInCart(produit.id)">
+                    <button (click)="updateCartQuantity(produit.id, getQuantityInCart(produit.id) - 1)">
+                      <i class="fas fa-minus"></i>
+                    </button>
+                    <span>{{ getQuantityInCart(produit.id) }}</span>
+                    <button (click)="updateCartQuantity(produit.id, getQuantityInCart(produit.id) + 1)">
+                      <i class="fas fa-plus"></i>
+                    </button>
+                  </div>
+                  <button class="btn btn-sm btn-primary" (click)="addToCart(produit)" *ngIf="!isInCart(produit.id)">
+                    <i class="fas fa-cart-plus"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="no-products" *ngIf="filteredProduits.length === 0">
+          <i class="fas fa-search"></i>
+          <h3>Aucun produit trouvé</h3>
+          <p>Essayez de modifier vos critères de recherche</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cart Modal -->
+  <div class="cart-modal-overlay" *ngIf="showCartModal" (click)="toggleCartModal()">
+    <div class="cart-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>
+          <i class="fas fa-shopping-cart"></i>
+          Mon Panier ({{ cartItemCount }} article{{ cartItemCount > 1 ? 's' : '' }})
+        </h2>
+        <button class="close-btn" (click)="toggleCartModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="modal-content">
+        <div class="cart-items" *ngIf="cartItems.length > 0; else emptyCart">
+          <div class="cart-item" *ngFor="let item of cartItems">
+            <div class="item-image">
+              <img [src]="getProductImageUrl(item.produit)" [alt]="item.produit.nom">
+            </div>
+            <div class="item-info">
+              <h4>{{ item.produit.nom }}</h4>
+              <p class="item-category">{{ getCategoryName(item.produit.categorie_id) }}</p>
+              <div class="item-controls">
+                <div class="quantity-controls">
+                  <button (click)="updateCartQuantity(item.produit.id, item.quantity - 1)">
+                    <i class="fas fa-minus"></i>
+                  </button>
+                  <span>{{ item.quantity }}</span>
+                  <button (click)="updateCartQuantity(item.produit.id, item.quantity + 1)">
+                    <i class="fas fa-plus"></i>
+                  </button>
+                </div>
+                <button class="remove-btn" (click)="removeFromCart(item.produit.id)">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+            <div class="item-price">
+              <span class="unit-price">{{ item.produit.prix }}dt</span>
+              <span class="total-price">{{ (item.produit.prix * item.quantity).toFixed(2) }}dt</span>
+            </div>
+          </div>
+        </div>
+        
+        <ng-template #emptyCart>
+          <div class="empty-cart">
+            <i class="fas fa-shopping-cart"></i>
+            <h3>Votre panier est vide</h3>
+            <p>Ajoutez des produits pour commencer vos achats</p>
+          </div>
+        </ng-template>
+      </div>
+      
+      <div class="modal-footer" *ngIf="cartItems.length > 0">
+        <div class="cart-total">
+          <span class="total-label">Total:</span>
+          <span class="total-amount">{{ cartTotal.toFixed(2) }}dt</span>
+        </div>
+        <div class="cart-actions">
+          <button class="btn btn-secondary" (click)="clearCart()">
+            <i class="fas fa-trash"></i>
+            Vider le panier
+          </button>
+          <button class="btn btn-primary" (click)="openCheckoutModal()">
+            <i class="fas fa-credit-card"></i>
+            Procéder au paiement
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Checkout Modal -->
+  <div class="checkout-modal-overlay" *ngIf="showCheckoutModal" (click)="closeCheckoutModal()">
+    <div class="checkout-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>
+          <i class="fas fa-shopping-bag"></i>
+          Finaliser votre commande
+        </h2>
+        <button class="close-btn" (click)="closeCheckoutModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="modal-content">
+        <div class="checkout-layout">
+          <!-- Order Summary - Now on the right side -->
+          <div class="order-summary">
+            <h3>Résumé de votre commande</h3>
+            <div class="summary-items">
+              <div class="summary-item" *ngFor="let item of cartItems">
+                <span class="item-name">{{ item.produit.nom }} x{{ item.quantity }}</span>
+                <span class="item-total">{{ (item.produit.prix * item.quantity).toFixed(2) }}dt</span>
+              </div>
+            </div>
+            <div class="summary-items">
+              <div class="summary-item">
+                <span class="item-name">Frais de livraison</span>
+                <span class="item-total">8 dt</span>
+              </div>
+            </div>
+            <div class="summary-total">
+              <strong>Total: {{ getCartTotal().toFixed(2) }} dt</strong>
+            </div>
+          </div>
+
+          <!-- Customer Information Form - Now on the left side -->
+          <div class="checkout-form-container">
+            <form class="checkout-form" (ngSubmit)="submitOrder()" #orderForm="ngForm">
+          <h3>Informations de livraison</h3>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="nom">Nom *</label>
+              <input 
+                type="text" 
+                id="nom" 
+                name="nom" 
+                [(ngModel)]="orderData.nom" 
+                required 
+                class="form-control"
+                placeholder="Votre nom">
+            </div><br>
+            <div class="form-group">
+              <label for="prenom">Prénom *</label>
+              <input 
+                type="text" 
+                id="prenom" 
+                name="prenom" 
+                [(ngModel)]="orderData.prenom" 
+                required 
+                class="form-control"
+                placeholder="Votre prénom">
+            </div>
+          </div>
+          <br>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="email">Email *</label>
+              <input 
+                type="email" 
+                id="email" 
+                name="email" 
+                [(ngModel)]="orderData.email" 
+                required 
+                class="form-control"
+                placeholder="votre@email.com">
+            </div><br>
+            <div class="form-group">
+              <label for="telephone">Téléphone</label>
+              <input 
+                type="tel" 
+                id="telephone" 
+                name="telephone" 
+                [(ngModel)]="orderData.telephone" 
+                class="form-control"
+                placeholder="Votre numéro de téléphone">
+            </div>
+          </div>
+          <br>
+          <div class="form-group">
+            <label for="gouvernorat">Gouvernorat</label>
+            <select 
+              id="gouvernorat" 
+              name="gouvernorat" 
+              [(ngModel)]="orderData.gouvernorat" 
+              (change)="onGouvernoratChange()" 
+              required 
+              class="form-control">
+              <option value="">Sélectionnez un gouvernorat</option>
+              <option value="Tunis">Tunis</option>
+              <option value="Ariana">Ariana</option>
+              <option value="Ben Arous">Ben Arous</option>
+              <option value="Manouba">Manouba</option>
+              <option value="Nabeul">Nabeul</option>
+              <option value="Zaghouan">Zaghouan</option>
+              <option value="Bizerte">Bizerte</option>
+              <option value="Béja">Béja</option>
+              <option value="Jendouba">Jendouba</option>
+              <option value="Le Kef">Le Kef</option>
+              <option value="Siliana">Siliana</option>
+              <option value="Kairouan">Kairouan</option>
+              <option value="Kasserine">Kasserine</option>
+              <option value="Sidi Bouzid">Sidi Bouzid</option>
+              <option value="Sousse">Sousse</option>
+              <option value="Monastir">Monastir</option>
+              <option value="Mahdia">Mahdia</option>
+              <option value="Sfax">Sfax</option>
+              <option value="Gafsa">Gafsa</option>
+              <option value="Tozeur">Tozeur</option>
+              <option value="Kebili">Kebili</option>
+              <option value="Gabès">Gabès</option>
+              <option value="Médenine">Médenine</option>
+              <option value="Tataouine">Tataouine</option>
+            </select>
+          </div>
+
+          <div class="form-group" *ngIf="orderData.gouvernorat">
+            <label for="ville">Ville/Délégation</label>
+            <select 
+              id="ville" 
+              name="ville" 
+              [(ngModel)]="orderData.ville" 
+              required 
+              class="form-control">
+              <option value="">Sélectionnez une ville</option>
+              <option *ngFor="let ville of getVillesByGouvernorat()" [value]="ville">{{ville}}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="adresse_detaillee">Adresse détaillée</label>
+            <textarea 
+              id="adresse_detaillee" 
+              name="adresse_detaillee" 
+              [(ngModel)]="orderData.adresse" 
+              required 
+              class="form-control"
+              rows="3"
+              placeholder="Rue, numéro, étage, code postal..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="mode_paiement">Mode de paiement</label>
+            <select 
+              id="mode_paiement" 
+              name="mode_paiement" 
+              [(ngModel)]="orderData.modePaiement" 
+              class="form-control">
+              <option value="carte_bancaire">Carte bancaire</option>
+              <option value="paypal">PayPal</option>
+              <option value="virement">Virement bancaire</option>
+              <option value="especes">Espèces à la livraison</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="notes">Notes (optionnel)</label>
+            <textarea 
+              id="notes" 
+              name="notes" 
+              [(ngModel)]="orderData.notes" 
+              class="form-control"
+              rows="2"
+              placeholder="Instructions spéciales pour la livraison..."></textarea>
+          </div>
+
+              <div class="form-actions">
+                <button type="button" class="btn btn-secondary" (click)="closeCheckoutModal()">
+                  <i class="fas fa-arrow-left"></i>
+                  Retour au panier
+                </button>
+                <button 
+                  type="submit" 
+                  class="btn btn-primary" 
+                  [disabled]="!orderForm.valid || isSubmittingOrder">
+                  <i class="fas fa-check" *ngIf="!isSubmittingOrder"></i>
+                  <i class="fas fa-spinner fa-spin" *ngIf="isSubmittingOrder"></i>
+                  {{ isSubmittingOrder ? 'Traitement...' : 'Confirmer la commande' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Order Confirmation Modal -->
+  <div class="confirmation-modal-overlay" *ngIf="showConfirmationModal" (click)="closeConfirmationModal()">
+    <div class="confirmation-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>
+          <i class="fas fa-check-circle"></i>
+          Commande confirmée !
+        </h3>
+        <button type="button" class="close-btn" (click)="closeConfirmationModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="modal-content">
+        <div class="success-icon">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <h3 class="confirmation-text">Merci pour votre commande !</h3>
+        <p class="confirmation-text">Votre commande a été enregistrée avec succès.</p>
+        
+        <div class="order-reference">
+          <strong>Référence de commande : {{ orderReference }}</strong>
+        </div>
+        
+        <p class="confirmation-text">
+          Vous recevrez un email de confirmation à l'adresse {{ orderData.email }} avec tous les détails de votre commande.
+        </p>
+        
+        <div class="next-steps">
+          <h4>
+            <i class="fas fa-list-check"></i>
+            Prochaines étapes :
+          </h4>
+          <ul>
+            <li>Préparation de votre commande (1-2 jours ouvrés)</li>
+            <li>Expédition et suivi de livraison</li>
+            <li>Livraison à votre adresse</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="modal-actions">
+        <button class="btn btn-primary" (click)="continueShopping()">
+          <i class="fas fa-shopping-cart"></i>
+          Continuer mes achats
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboards Section -->
+  <section id="dashboards" class="dashboards-section">
+    <div class="container">
+      <h2 class="section-title">Tableaux de bord personnalisés</h2>
+      <div class="dashboards-grid">
+        <div class="dashboard-card" *ngFor="let dashboard of dashboards">
+          <div class="dashboard-preview">
+            <div class="preview-header">
+              <div class="preview-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+            <div class="preview-content">
+              <div class="preview-sidebar">
+                <div class="sidebar-item" *ngFor="let item of dashboard.sidebarItems"></div>
+              </div>
+              <div class="preview-main">
+                <div class="chart-placeholder"></div>
+                <div class="stats-row">
+                  <div class="stat-box" *ngFor="let stat of [1,2,3]"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="dashboard-info">
+            <h3>{{ dashboard.title }}</h3>
+            <p>{{ dashboard.description }}</p>
+            <div class="dashboard-features">
+              <span class="feature-tag" *ngFor="let feature of dashboard.features">{{ feature }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Section -->
+  <section class="stats-section">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat-item" *ngFor="let stat of stats">
+          <div class="stat-number">{{ stat.number }}</div>
+          <div class="stat-label">{{ stat.label }}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works Section -->
+  <section id="how-it-works" class="how-it-works-section">
+    <div class="container">
+      <h2 class="section-title">Comment ça marche</h2>
+      <div class="steps-container">
+        <div class="step" *ngFor="let step of steps; let i = index">
+          <div class="step-number">{{ i + 1 }}</div>
+          <div class="step-content">
+            <h3>{{ step.title }}</h3>
+            <p>{{ step.description }}</p>
+          </div>
+          <div class="step-icon">
+            <i [class]="step.icon"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Consultation Section -->
+  <section id="consultation" class="consultation-section">
+    <div class="container">
+      <h2 class="section-title">Demander une consultation</h2>
+      <p class="consultation-subtitle">Vous avez des questions sur votre santé ? Nos professionnels sont là pour vous aider.</p>
+      
+      <div class="consultation-form-container">
+        <form class="consultation-form" (ngSubmit)="submitConsultationRequest()" #consultationForm="ngForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="nom">Nom *</label>
+              <input 
+                type="text" 
+                id="nom" 
+                name="nom" 
+                [(ngModel)]="consultationData.nom" 
+                required 
+                class="form-control"
+                placeholder="Votre nom"
+              >
+            </div>
+            <div class="form-group">
+              <label for="prenom">Prénom</label>
+              <input 
+                type="text" 
+                id="prenom" 
+                name="prenom" 
+                [(ngModel)]="consultationData.prenom" 
+                class="form-control"
+                placeholder="Votre prénom"
+              >
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="email">Email *</label>
+              <input 
+                type="email" 
+                id="email" 
+                name="email" 
+                [(ngModel)]="consultationData.email" 
+                required 
+                email 
+                class="form-control"
+                placeholder="votre.email@exemple.com"
+              >
+            </div>
+            <div class="form-group">
+              <label for="telephone">Téléphone</label>
+              <input 
+                type="tel" 
+                id="telephone" 
+                name="telephone" 
+                [(ngModel)]="consultationData.telephone" 
+                class="form-control"
+                placeholder="Votre numéro de téléphone"
+              >
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="specialite">Spécialité médicale</label>
+            <select 
+              id="specialite" 
+              name="specialite" 
+              [(ngModel)]="selectedSpecialite" 
+              (ngModelChange)="onSpecialiteChange()"
+              class="form-control"
+            >
+              <option value="">Sélectionnez une spécialité (optionnel)</option>
+              <option *ngFor="let specialite of specialites" [value]="specialite">
+                {{ specialite }}
+              </option>
+            </select>
+          </div>
+          
+          <div class="form-group" *ngIf="selectedSpecialite">
+            <label for="medecin">Médecin souhaité</label>
+            <select 
+              id="medecin" 
+              name="medecin" 
+              [(ngModel)]="consultationData.medecin_id" 
+              class="form-control"
+            >
+              <option value="">Sélectionnez un médecin</option>
+              <option *ngFor="let medecin of medecinsFiltres" [value]="medecin.id">
+                Dr. {{ medecin.nom }} {{ medecin.prenom }}
+              </option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="date_demande">Date de demande *</label>
+            <input 
+              type="date" 
+              id="date_demande" 
+              name="date_demande" 
+              [(ngModel)]="consultationData.date_demande" 
+              required 
+              class="form-control"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label for="objet">Objet de la consultation *</label>
+            <textarea 
+              id="objet" 
+              name="objet" 
+              [(ngModel)]="consultationData.objet" 
+              required 
+              class="form-control textarea"
+              placeholder="Décrivez brièvement l'objet de votre consultation..."
+              rows="4"
+            ></textarea>
+          </div>
+          
+          <div class="form-actions">
+            <button 
+              type="submit" 
+              class="btn btn-primary btn-large"
+              [disabled]="!consultationForm.form.valid || isSubmitting"
+            >
+              <i class="fas fa-paper-plane" *ngIf="!isSubmitting"></i>
+              <i class="fas fa-spinner fa-spin" *ngIf="isSubmitting"></i>
+              {{ isSubmitting ? 'Envoi en cours...' : 'Envoyer la demande' }}
+            </button>
+          </div>
+        </form>
+        
+        <!-- Message de succès -->
+        <div class="success-message" *ngIf="showSuccessMessage">
+          <i class="fas fa-check-circle"></i>
+          <h3>Demande envoyée avec succès !</h3>
+          <p>Nous avons bien reçu votre demande de consultation. Un professionnel de santé vous contactera dans les plus brefs délais.</p>
+        </div>
+        
+        <!-- Message d'erreur -->
+        <div class="error-message" *ngIf="showErrorMessage">
+          <i class="fas fa-exclamation-triangle"></i>
+          <h3>Erreur lors de l'envoi</h3>
+          <p>{{ errorMessage }}</p>
+          <button class="btn btn-secondary" (click)="resetForm()">Réessayer</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section id="cta" class="cta-section">
+    <div class="container">
+      <div class="cta-content">
+        <h2>Prêt à commencer votre transformation ?</h2>
+        <p>Rejoignez des milliers d'utilisateurs qui ont déjà transformé leur vie avec VitaFit</p>
+        <button class="btn btn-primary btn-large" (click)="navigateToLogin()">Créer mon compte</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section">
+          <h3>VitaFit</h3>
+          <p>Votre partenaire pour une vie plus saine</p>
+        </div>
+        <div class="footer-section">
+          <h4>Fonctionnalités</h4>
+          <ul>
+            <li>Suivi médical</li>
+            <li>Programmes fitness</li>
+            <li>Gestion du poids</li>
+            <li>Rappels d'entraînement</li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h4>Support</h4>
+          <ul>
+            <li>Centre d'aide</li>
+            <li>Contact</li>
+            <li>FAQ</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2024 VitaFit. Tous droits réservés.</p>
+      </div>
+    </div>
+  </footer>
+</div>
